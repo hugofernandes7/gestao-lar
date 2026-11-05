@@ -220,6 +220,7 @@ public class DemoDataService {
         }
 
         // 6b. Condições de saúde (o nome só se vê na aba Saúde, com PIN; no tablet sem PIN só os avisos de atuação)
+        validarProtocolosDeDemonstracao(autor, agora);
         condicoesDeDemonstracao(lista, hoje, autor, agora);
 
         // 7. Quem registou: as funcionárias de demonstração (se existirem) alternam; um em cada cinco fica sem sessão (nulo)
@@ -228,6 +229,14 @@ public class DemoDataService {
             for (Registo r : registos.findAll()) {
                 if (r.getId() % 5 != 0) r.setRealizadoPor(equipa.get((int) (r.getId() % equipa.size())));
             }
+        }
+    }
+
+    /** Textos [DEMO]: a maioria fica por validar; 3 (usados na demonstração) validados pela enfermeira de demo. */
+    private void validarProtocolosDeDemonstracao(UtilizadorGestao autor, Instant agora) {
+        for (var c : catalogoCondicoes.findAll()) {
+            if (java.util.Set.of("ANTICOAGULADO", "DIABETES_INSULINA", "DEMENCIA").contains(c.getCodigo())) c.validar(agora, autor);
+            else c.limparValidacao();
         }
     }
 

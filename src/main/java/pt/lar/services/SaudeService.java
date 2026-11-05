@@ -44,10 +44,12 @@ public class SaudeService {
     }
 
     /** Um cartão do separador Saúde: a condição, o que se sabe dela e o que fazer. */
-    public record CartaoCondicao(String nome, String detalhe, String desde, String notas, List<String> passos) {}
+    public record CartaoCondicao(String nome, String detalhe, String desde, String notas, List<String> passos,
+                                 boolean porValidar) {}
 
     /** Linha da lista de protocolos no /admin (já resolvida: o open-in-view está desligado). */
-    public record ProtocoloVista(String codigo, String nome, String aviso, String ultima) {}
+    public record ProtocoloVista(String codigo, String nome, String aviso, String ultima, boolean ativa,
+                                 boolean validado, String validacao, long emUso) {}
 
     /** Condição de um utente tal como o /admin a mostra. */
     public record CondicaoAdmin(Long id, String nome, String codigo, String detalhe, LocalDate desde, String notas,
@@ -83,8 +85,80 @@ public class SaudeService {
     public List<ProtocoloVista> protocolosParaAdmin() {
         return catalogo.findAllByOrderByOrdemAsc().stream()
                 .map(c -> new ProtocoloVista(c.getCodigo(), c.getNome(), c.getAviso(),
-                        fmt.dataHora(c.getAtualizadoEm()) + (c.getAtualizadoPor() != null ? " por " + c.getAtualizadoPor().getNome() : "")))
+                        fmt.dataHora(c.getAtualizadoEm()) + (c.getAtualizadoPor() != null ? " por " + c.getAtualizadoPor().getNome() : ""),
+                        c.isAtiva(), c.isValidado(), validacao(c), condicoes.contarDaCondicao(c.getCodigo())))
                 .toList();
+    }
+
+    /** «Validado por X em …» ou «Por validar». */
+    public String validacao(CondicaoProtocolo c) {
+        if (!c.isValidado()) return "Por validar";
+        return "Validado" + (c.getValidadoPor() != null ? " por " + c.getValidadoPor().getNome() : "")
+                + " em " + fmt.dataHora(c.getValidadoEm());
+    }
+
+    @Transactional(readOnly = true)
+    public String validacaoDe(String codigo) {
+        return validacao(protocolo(codigo));
+    }
+
+    /** Condições que se podem atribuir a um utente (as desativadas ficam de fora). */
+    @Transactional(readOnly = true)
+    public List<CondicaoProtocolo> catalogoAtivo() {
+        return catalogo.findAllByAtivaTrueOrderByOrdemAsc();
+    }
+
+    /** Só a enfermagem valida um protocolo; a validação cai com qualquer edição posterior. */
+    @Transactional
+    public void validar(String codigo, UtilizadorGestao por) {
+        if (por == null || por.getPerfil() != pt.lar.models.Perfil.ENFERMEIRO) {
+            throw new SaudeInvalidaException("Só a enfermagem pode validar um protocolo.");
+        }
+        protocolo(codigo).validar(clock.instant(), por);
+    }
+
+    @Transactional
+    public CondicaoProtocolo criarCondicao(String nome, String protocolo, String aviso, UtilizadorGestao por) {
+        String n = nome == null ? "" : nome.strip();
+        String p = protocolo == null ? "" : protocolo.strip();
+        String a = vazioParaNulo(aviso);
+        validarProtocolo(n, p, a);
+        String base = codigoDe(n);
+        String codigo = base;
+        for (int i = 2; catalogo.existsById(codigo); i++) codigo = base.substring(0, Math.min(base.length(), 36)) + "_" + i;
+        int ordem = catalogo.findAllByOrderByOrdemAsc().stream().mapToInt(CondicaoProtocolo::getOrdem).max().orElse(0) + 1;
+        return catalogo.save(new CondicaoProtocolo(codigo, n, p, a, ordem, clock.instant(), por));
+    }
+
+    /** Desativar não apaga nada: o que já está atribuído a utentes mantém-se, mas deixa de se poder atribuir. */
+    @Transactional
+    public void definirCondicaoAtiva(String codigo, boolean ativa, UtilizadorGestao por) {
+        protocolo(codigo).definirAtiva(ativa, clock.instant(), por);
+    }
+
+    /** Só se apaga uma condição que nunca foi atribuída a nenhum utente. */
+    @Transactional
+    public void apagarCondicao(String codigo) {
+        CondicaoProtocolo c = protocolo(codigo);
+        if (condicoes.contarDaCondicao(codigo) > 0) {
+            throw new SaudeInvalidaException("Esta condição está associada a utentes: desative-a em vez de a apagar.");
+        }
+        catalogo.delete(c);
+    }
+
+    private static String codigoDe(String nome) {
+        String s = java.text.Normalizer.normalize(nome, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "").toUpperCase().replaceAll("[^A-Z0-9]+", "_").replaceAll("^_|_$", "");
+        if (s.isEmpty()) s = "CONDICAO";
+        return s.length() > 36 ? s.substring(0, 36) : s;
+    }
+
+    private void validarProtocolo(String n, String p, String a) {
+        if (n.isEmpty()) throw new SaudeInvalidaException("O nome da condição é obrigatório.");
+        if (n.length() > MAX_NOME) throw new SaudeInvalidaException("Nome: máximo " + MAX_NOME + " caracteres.");
+        if (passos(p).isEmpty()) throw new SaudeInvalidaException("O protocolo «O que fazer» não pode ficar vazio.");
+        if (p.length() > MAX_PROTOCOLO) throw new SaudeInvalidaException("Protocolo: máximo " + MAX_PROTOCOLO + " caracteres.");
+        if (a != null && a.length() > MAX_AVISO) throw new SaudeInvalidaException("Aviso: máximo " + MAX_AVISO + " caracteres.");
     }
 
     @Transactional(readOnly = true)
@@ -98,12 +172,8 @@ public class SaudeService {
         String n = nome == null ? "" : nome.strip();
         String p = protocolo == null ? "" : protocolo.strip();
         String a = vazioParaNulo(aviso);
-        if (n.isEmpty()) throw new SaudeInvalidaException("O nome da condição é obrigatório.");
-        if (n.length() > MAX_NOME) throw new SaudeInvalidaException("Nome: máximo " + MAX_NOME + " caracteres.");
-        if (passos(p).isEmpty()) throw new SaudeInvalidaException("O protocolo «O que fazer» não pode ficar vazio.");
-        if (p.length() > MAX_PROTOCOLO) throw new SaudeInvalidaException("Protocolo: máximo " + MAX_PROTOCOLO + " caracteres.");
-        if (a != null && a.length() > MAX_AVISO) throw new SaudeInvalidaException("Aviso: máximo " + MAX_AVISO + " caracteres.");
-        c.atualizar(n, p, a, clock.instant(), por);
+        validarProtocolo(n, p, a);
+        c.atualizar(n, p, a, clock.instant(), por);     // também tira a validação
     }
 
     // ---- Condições dos utentes ---------------------------------------------------------------------------------
@@ -129,6 +199,7 @@ public class SaudeService {
         var utente = utentes.findById(utenteId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         CondicaoProtocolo tipo = catalogo.findById(codigo == null ? "" : codigo)
                 .orElseThrow(() -> new SaudeInvalidaException("Escolha a condição."));
+        if (!tipo.isAtiva()) throw new SaudeInvalidaException("Esta condição está desativada no catálogo.");
         String d = vazioParaNulo(detalhe);
         String n = vazioParaNulo(notas);
         validar(tipo, d, n, desde);
@@ -169,6 +240,7 @@ public class SaudeService {
     public List<String> avisosDeAtuacao(Long utenteId) {
         LinkedHashSet<String> r = new LinkedHashSet<>();
         for (UtenteCondicao c : condicoes.ativasDoUtente(utenteId)) {
+            if (!c.getCondicao().isValidado()) continue;          // protocolo por validar: nem o aviso sai
             String a = c.getCondicao().getAviso();
             if (a != null && !a.isBlank()) r.add(a.strip());
         }
@@ -183,7 +255,8 @@ public class SaudeService {
             boolean outra = CODIGO_OUTRA.equals(c.getCondicao().getCodigo()) && c.getDetalhe() != null;   // «Outra»: o título é o detalhe
             r.add(new CartaoCondicao(outra ? c.getDetalhe() : c.getCondicao().getNome(), outra ? null : c.getDetalhe(),
                     c.getDesde() == null ? null : "desde " + DATA.format(c.getDesde()), c.getNotas(),
-                    passos(c.getCondicao().getProtocolo())));
+                    c.getCondicao().isValidado() ? passos(c.getCondicao().getProtocolo()) : List.of(),
+                    !c.getCondicao().isValidado()));
         }
         return r;
     }

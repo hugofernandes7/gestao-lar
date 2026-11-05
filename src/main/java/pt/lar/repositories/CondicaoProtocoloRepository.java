@@ -6,4 +6,6 @@ import pt.lar.models.CondicaoProtocolo;
 
 public interface CondicaoProtocoloRepository extends JpaRepository<CondicaoProtocolo, String> {
     List<CondicaoProtocolo> findAllByOrderByOrdemAsc();
+
+    List<CondicaoProtocolo> findAllByAtivaTrueOrderByOrdemAsc();
 }

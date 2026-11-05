@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="pt-PT" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{admin/layout :: head('Nova condição')}"></head>
+<body>
+<header th:replace="~{admin/layout :: topo(${menu})}"></header>
+<main class="conteudo estreito">
+    <div th:replace="~{admin/layout :: mensagens}"></div>
+    <p class="migalhas"><a href="/admin/protocolos">Protocolos</a> › Nova condição</p>
+    <h1>Nova condição</h1>
+    <p class="suave">A condição nasce <strong>por validar</strong>: só depois de a enfermagem validar o protocolo é que o texto chega ao tablet.</p>
+
+    <form class="formulario" method="post" action="/admin/protocolos">
+        <label>Nome da condição <span class="suave pequeno">(só aparece na Saúde, com PIN, e aqui)</span>
+            <input type="text" name="nome" maxlength="80" required>
+        </label>
+        <label>O que fazer <span class="suave pequeno">(um passo por linha)</span>
+            <textarea name="protocolo" rows="10" maxlength="4000" required></textarea>
+        </label>
+        <label>Aviso de atuação <span class="suave pequeno">(<strong>não escrever o nome da condição</strong>; vazio = sem aviso)</span>
+            <input type="text" name="aviso" maxlength="200">
+        </label>
+        <div class="barra">
+            <button type="submit" class="botao">Criar</button>
+            <a class="botao botao-claro" href="/admin/protocolos">Cancelar</a>
+        </div>
+    </form>
+</main>
+</body>
+</html>

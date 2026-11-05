@@ -15,4 +15,7 @@ public interface UtenteCondicaoRepository extends JpaRepository<UtenteCondicao, 
     @Query("select c from UtenteCondicao c join fetch c.condicao k where c.utente.id = :utenteId and c.ativa = true "
             + "order by k.ordem asc, c.id asc")
     List<UtenteCondicao> ativasDoUtente(Long utenteId);
+
+    @Query("select count(c) from UtenteCondicao c where c.condicao.codigo = :codigo")
+    long contarDaCondicao(String codigo);
 }

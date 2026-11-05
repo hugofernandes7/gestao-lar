@@ -320,3 +320,7 @@ textarea::placeholder { color: var(--cinza); opacity: 1; }
 .col-dir .btn-sair { padding-inline: .7rem; }
 .col-dir .sessao { margin-right: 0; gap: .35rem; }
 .col-dir .sessao .sessao-nome { max-width: 6rem; }
+
+/* Protocolo ainda não validado pela enfermagem: aviso neutro (sem cores de estado), texto escrito */
+.saude-por-validar { margin: .4rem 0 0; padding: .6rem .9rem; border: 2px dashed var(--azul-escuro); border-radius: .6rem;
+  background: #fff; color: var(--azul-escuro); font-weight: 700; }

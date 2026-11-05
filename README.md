@@ -271,7 +271,15 @@ Se usares outra rede, é o IPv4 do adaptador ligado a essa rede.
 - **Protocolos** (`/admin/protocolos`): as 11 condições (diabetes com insulina / oral, anticoagulação, AVC, enfarte,
   insuficiência cardíaca, epilepsia, demência, DPOC com oxigénio, pacemaker, outra). Para cada uma edita-se o
   nome, o protocolo «O que fazer» (um passo por linha) e o **aviso de atuação** (não pode levar o nome da condição).
-  **Os textos fornecidos são genéricos e têm de ser revistos pela enfermagem antes de qualquer uso real.**
+  O catálogo é **editável**: a enfermagem pode **criar**, renomear e **desativar** condições (uma desativada deixa de
+  se poder atribuir, mas o que já está atribuído mantém-se) e **apagar** só as que nenhum utente tem.
+  - **Validação:** cada protocolo tem *validado por / em* (`validado_por`, `validado_em`). Só o perfil **ENFERMEIRO**
+    valida. **Qualquer edição (ou uma condição nova) volta a pô-lo «por validar».** No tablet, um protocolo por
+    validar mostra «Protocolo por validar pela enfermagem» em vez do texto e o seu aviso de atuação **não aparece** no
+    bloco Atenção.
+  - Os textos de partida estão marcados **[DEMO]** (genéricos, não são clínicos) e a V8 deixa-os todos por validar; a demo
+    traz 3 validados pela enfermeira de demonstração (anticoagulado, diabetes com insulina, demência).
+  - **Antes de qualquer uso real, a enfermagem tem de escrever e validar os protocolos.**
 - **Condições do utente** (botão «Condições» na lista de utentes): adicionar, editar (detalhe, desde, notas) e
   desativar/reativar; guarda quem e quando. Só uma condição ativa de cada tipo (exceto «Outra», que exige detalhe).
 - **Plano de medicação:** por utente (medicamento, dose, horário, observações/alergias). Cada alteração
@@ -312,7 +320,7 @@ Os nomes na grelha podem ocupar 2 linhas, mas nunca são cortados nem ficam abai
 Capturas: `screenshots/final/` (aspeto geral) e `screenshots/etapa5/` (regenerar com `.\mvnw.cmd test "-Dtest=CapturasEsteticasTest" "-Dcapturas=true"`).
 screenshots/etapa5b/ capturas da ficha em duas colunas (incluindo um pior caso artificial com a coluna esquerda a rolar)
 screenshots/etapa6/  capturas do acesso por número + PIN, da sessão e do admin de funcionárias e acessos
-screenshots/etapa7/  capturas do separador Saúde (pede PIN, protocolos), do admin de protocolos, condições e acessos
+screenshots/etapa7/  capturas do separador Saúde (pede PIN, protocolos), do admin de protocolos, condições e acessos; `09`–`15` mostram protocolo validado vs por validar
 
 ---
 
@@ -361,8 +369,9 @@ nessa altura; depois funciona offline. Para correr só os testes sem interface: 
 | `SaudeMvcTest` | Saúde só com PIN (redirect/HX-Redirect e regresso ao separador), cada abertura registada, **nenhum nome de condição, protocolo, nota ou medicamento no tablet sem sessão** |
 | `AdminSaudeTest` | `/admin/protocolos`, condições do utente, acessos à Saúde; login, CSRF, 404 entre utentes |
 | `SaudeUiTest` | fluxo completo no Chromium: ficha → Saúde → PIN → protocolos → Registos → Saúde → sessão expirada → PIN |
+| `ValidacaoProtocolosTest` | catálogo editável (criar, renomear, desativar, apagar só sem utentes) e validação (só enfermagem, editar tira a validação, tablet esconde texto e aviso, admin, seed de demo) |
 
-Total: **341 testes** (mais 4, `CapturasEsteticasTest`, que só correm com `-Dcapturas=true`). Os de interface demoram
+Total: **351 testes** (mais 5, `CapturasEsteticasTest`, que só correm com `-Dcapturas=true`). Os de interface demoram
 cerca de 3 minutos porque esperam temporizadores reais de 10 s e 60 s.
 O `axe.min.js` está em `src/test/resources/axe/` e só é usado nos testes (a aplicação não tem dependências externas).
 
@@ -378,7 +387,7 @@ src/main/java/pt/lar/
   repositories/  Spring Data JPA
   services/      Regras, RegistoService, GrelhaService, FichaService, PlanoService, …
 src/main/resources/
-  db/migration/  V1__schema.sql, V2__fotos_e_historico_de_notas.sql, V3__perfil_de_atencao.sql, V4__funcionarios_e_acesso_por_pin.sql, V5__definicoes.sql, V6__banho_nunca_exige_sessao.sql, V7__condicoes_e_saude.sql (Flyway)
+  db/migration/  V1__schema.sql, V2__fotos_e_historico_de_notas.sql, V3__perfil_de_atencao.sql, V4__funcionarios_e_acesso_por_pin.sql, V5__definicoes.sql, V6__banho_nunca_exige_sessao.sql, V7__condicoes_e_saude.sql, V8__catalogo_editavel_e_validacao_de_protocolos.sql (Flyway)
   templates/     tablet/*, admin/*  (Thymeleaf)
   static/        css/, fonts/ (Atkinson Hyperlegible), js/htmx.min.js (local), manifest.json, icons/
 screenshots/final/   capturas 1280×800 do aspeto final (grelha, ficha, admin)

@@ -123,6 +123,34 @@ class CapturasEsteticasTest extends BaseVisualTest {
         entrarNoAdminDe(pasta);
     }
 
+    /** Etapa 7 (revisão): protocolo validado vs por validar, no tablet e no admin. */
+    @Test
+    void capturarEtapa7Validacao() throws Exception {
+        Path pasta = Path.of("screenshots", "etapa7");
+        Files.createDirectories(pasta);
+
+        iniciarSessao(1, "1111");
+        pagina.navigate(url("/tablet/utentes/" + quarto4.getId() + "?aba=saude"));
+        pagina.waitForSelector(".saude");
+        pagina.locator(".saude-cartao").nth(1).scrollIntoViewIfNeeded();
+        pagina.evaluate("document.querySelector('.saude-cartao:nth-child(2)').scrollIntoView({block: 'center'})");
+        guardar(pasta, "09-tablet-saude-validado-e-por-validar", false);
+        pagina.navigate(url("/tablet/utentes/" + utentes.findAllByOrderByIdAsc().get(2).getId()));
+        guardar(pasta, "10-tablet-atencao-sem-aviso-protocolo-por-validar", false);
+        pagina.navigate(url("/tablet/utentes/" + utentes.findAllByOrderByIdAsc().get(12).getId()));
+        guardar(pasta, "11-tablet-atencao-com-aviso-protocolo-validado", false);
+
+        entrarNoAdmin();
+        pagina.navigate(url("/admin/protocolos"));
+        guardar(pasta, "12-admin-protocolos-validado-e-por-validar", true);
+        pagina.navigate(url("/admin/protocolos/EPILEPSIA"));
+        guardar(pasta, "13-admin-protocolo-por-validar", true);
+        pagina.navigate(url("/admin/protocolos/DIABETES_INSULINA"));
+        guardar(pasta, "14-admin-protocolo-validado", true);
+        pagina.navigate(url("/admin/protocolos/novo"));
+        guardar(pasta, "15-admin-nova-condicao", true);
+    }
+
     private void entrarNoAdminDe(Path pasta) throws Exception {
         entrarNoAdmin();
         pagina.navigate(url("/admin/protocolos"));

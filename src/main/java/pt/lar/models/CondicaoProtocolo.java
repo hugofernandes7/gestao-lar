@@ -24,8 +24,49 @@ public class CondicaoProtocolo {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "atualizado_por")
     private UtilizadorGestao atualizadoPor;
+    @Column(nullable = false)
+    private boolean ativa = true;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "validado_por")
+    private UtilizadorGestao validadoPor;
+    @Column(name = "validado_em")
+    private Instant validadoEm;
 
     protected CondicaoProtocolo() {}
+
+    /** Condição nova: nasce por validar. */
+    public CondicaoProtocolo(String codigo, String nome, String protocolo, String aviso, int ordem, Instant quando,
+                             UtilizadorGestao por) {
+        this.codigo = codigo;
+        this.nome = nome;
+        this.protocolo = protocolo;
+        this.aviso = aviso;
+        this.ordem = ordem;
+        this.atualizadoEm = quando;
+        this.atualizadoPor = por;
+    }
+
+    public boolean isAtiva() { return ativa; }
+    public UtilizadorGestao getValidadoPor() { return validadoPor; }
+    public Instant getValidadoEm() { return validadoEm; }
+    /** So um protocolo validado chega ao tablet. */
+    public boolean isValidado() { return validadoEm != null; }
+
+    public void validar(Instant quando, UtilizadorGestao por) {
+        this.validadoEm = quando;
+        this.validadoPor = por;
+    }
+
+    public void limparValidacao() {
+        this.validadoEm = null;
+        this.validadoPor = null;
+    }
+
+    public void definirAtiva(boolean ativa, Instant quando, UtilizadorGestao por) {
+        this.ativa = ativa;
+        this.atualizadoEm = quando;
+        this.atualizadoPor = por;
+    }
 
     public String getCodigo() { return codigo; }
     public String getNome() { return nome; }
@@ -41,5 +82,6 @@ public class CondicaoProtocolo {
         this.aviso = aviso;
         this.atualizadoEm = quando;
         this.atualizadoPor = por;
+        limparValidacao();          // editar volta a pôr o protocolo "por validar"
     }
 }

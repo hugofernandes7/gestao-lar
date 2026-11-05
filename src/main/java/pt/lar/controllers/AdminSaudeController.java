@@ -44,9 +44,59 @@ public class AdminSaudeController {
         return "admin/protocolos";
     }
 
+    @GetMapping("/admin/protocolos/novo")
+    String novaCondicao(Model model) {
+        model.addAttribute("menu", "protocolos");
+        return "admin/protocolo-novo";
+    }
+
+    @PostMapping("/admin/protocolos")
+    String criarCondicao(@RequestParam String nome, @RequestParam String protocolo,
+                         @RequestParam(defaultValue = "") String aviso, Principal quem, RedirectAttributes ra) {
+        try {
+            var c = saude.criarCondicao(nome, protocolo, aviso, autor(quem));
+            ra.addFlashAttribute("sucesso", "Condição criada. O protocolo fica por validar pela enfermagem.");
+            return "redirect:/admin/protocolos/" + c.getCodigo();
+        } catch (SaudeInvalidaException e) {
+            ra.addFlashAttribute("erro", e.getMessage());
+            return "redirect:/admin/protocolos/novo";
+        }
+    }
+
+    @PostMapping("/admin/protocolos/{codigo}/validar")
+    String validar(@PathVariable String codigo, Principal quem, RedirectAttributes ra) {
+        try {
+            saude.validar(codigo, autor(quem));
+            ra.addFlashAttribute("sucesso", "Protocolo validado.");
+        } catch (SaudeInvalidaException e) {
+            ra.addFlashAttribute("erro", e.getMessage());
+        }
+        return "redirect:/admin/protocolos/" + codigo;
+    }
+
+    @PostMapping("/admin/protocolos/{codigo}/ativa")
+    String ativarCondicao(@PathVariable String codigo, @RequestParam boolean ativa, Principal quem, RedirectAttributes ra) {
+        saude.definirCondicaoAtiva(codigo, ativa, autor(quem));
+        ra.addFlashAttribute("sucesso", ativa ? "Condição reativada." : "Condição desativada.");
+        return "redirect:/admin/protocolos";
+    }
+
+    @PostMapping("/admin/protocolos/{codigo}/apagar")
+    String apagarCondicao(@PathVariable String codigo, RedirectAttributes ra) {
+        try {
+            saude.apagarCondicao(codigo);
+            ra.addFlashAttribute("sucesso", "Condição apagada.");
+        } catch (SaudeInvalidaException e) {
+            ra.addFlashAttribute("erro", e.getMessage());
+        }
+        return "redirect:/admin/protocolos";
+    }
+
     @GetMapping("/admin/protocolos/{codigo}")
     String editarProtocolo(@PathVariable String codigo, Model model) {
         model.addAttribute("c", saude.protocolo(codigo));
+        model.addAttribute("validacao", saude.validacaoDe(codigo));
+        model.addAttribute("validado", saude.protocolo(codigo).isValidado());
         model.addAttribute("menu", "protocolos");
         return "admin/protocolo-form";
     }
@@ -56,7 +106,7 @@ public class AdminSaudeController {
                             @RequestParam(defaultValue = "") String aviso, Principal quem, RedirectAttributes ra) {
         try {
             saude.editarProtocolo(codigo, nome, protocolo, aviso, autor(quem));
-            ra.addFlashAttribute("sucesso", "Protocolo guardado.");
+            ra.addFlashAttribute("sucesso", "Protocolo guardado. Está por validar pela enfermagem.");
             return "redirect:/admin/protocolos";
         } catch (SaudeInvalidaException e) {
             ra.addFlashAttribute("erro", e.getMessage());
@@ -70,7 +120,7 @@ public class AdminSaudeController {
     String condicoes(@PathVariable Long id, Model model) {
         model.addAttribute("utente", utentes.obter(id));
         model.addAttribute("linhas", saude.condicoesParaAdmin(id));
-        model.addAttribute("catalogo", saude.catalogo());
+        model.addAttribute("catalogo", saude.catalogoAtivo());
         model.addAttribute("menu", "utentes");
         return "admin/condicoes";
     }

@@ -120,10 +120,14 @@ public abstract class BaseIntegracaoTest {
 
     private void reporCatalogoDeCondicoes() {
         if (catalogoOriginal == null) {
-            catalogoOriginal = jdbc.queryForList("select codigo, nome, protocolo, aviso from condicao_protocolo");
+            catalogoOriginal = jdbc.queryForList("select codigo, nome, protocolo, aviso, ordem from condicao_protocolo");
+            // a V8 deixa tudo por validar; nos testes parte-se de protocolos validados (os que testam o contrário desvalidam)
         }
+        jdbc.update("delete from condicao_protocolo where codigo not in (" + String.join(",", catalogoOriginal.stream().map(c -> "'" + c.get("codigo") + "'").toList()) + ")");
         for (var c : catalogoOriginal) {
-            jdbc.update("update condicao_protocolo set nome = ?, protocolo = ?, aviso = ?, atualizado_por = null where codigo = ?",
+            jdbc.update("insert into condicao_protocolo (codigo, nome, protocolo, aviso, ordem, atualizado_em) values (?, ?, ?, ?, ?, now()) on conflict (codigo) do nothing",
+                    c.get("codigo"), c.get("nome"), c.get("protocolo"), c.get("aviso"), c.get("ordem"));
+            jdbc.update("update condicao_protocolo set nome = ?, protocolo = ?, aviso = ?, atualizado_por = null, ativa = true, validado_em = now(), validado_por = null where codigo = ?",
                     c.get("nome"), c.get("protocolo"), c.get("aviso"), c.get("codigo"));
         }
     }

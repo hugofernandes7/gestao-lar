@@ -75,6 +75,22 @@ class SaudeUiTest extends BaseVisualTest {
     }
 
     @Test
+    void protocoloPorValidarMostraAvisoNaSaudeENaoTemAvisoNoAtencao() {
+        iniciarSessao(1, "1111");
+        pagina.navigate(url("/tablet/utentes/" + quarto4.getId() + "?aba=saude"));
+        // 1.ª (anticoagulado) validada: passos; 2.ª (hipertensão, «Outra») por validar: mensagem em vez do texto
+        assertThat(pagina.locator(".saude-cartao").first().locator("li").first()).isVisible();
+        assertThat(pagina.locator(".saude-cartao").first().locator(".saude-por-validar")).hasCount(0);
+        assertThat(pagina.locator(".saude-cartao").nth(1).locator(".saude-por-validar")).hasText("Protocolo por validar pela enfermagem");
+        assertThat(pagina.locator(".saude-cartao").nth(1).locator("li")).hasCount(0);
+
+        // utente com uma condição por validar: nem o aviso aparece no Atenção
+        Utente porValidar = utentes.findAllByOrderByIdAsc().get(2);          // DPOC (por validar)
+        pagina.navigate(url("/tablet/utentes/" + porValidar.getId()));
+        assertThat(pagina.locator(".cel-acao")).hasCount(0);
+    }
+
+    @Test
     void saudeSoTemDoisToquesMaisOPin() {
         iniciarSessao(1, "1111");
         pagina.navigate(url("/tablet/utentes/" + quarto4.getId()));

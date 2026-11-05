@@ -226,10 +226,13 @@
                         <span th:if="${c.detalhe() != null}" th:text="${c.detalhe()}">detalhe</span>
                         <span class="suave" th:if="${c.desde() != null}" th:text="${c.desde()}">desde 2019</span>
                     </p>
-                    <h3>O que fazer</h3>
-                    <ol class="saude-passos">
-                        <li th:each="p : ${c.passos()}" th:text="${p}">Passo</li>
-                    </ol>
+                    <p class="saude-por-validar" th:if="${c.porValidar()}">Protocolo por validar pela enfermagem</p>
+                    <th:block th:unless="${c.porValidar()}">
+                        <h3>O que fazer</h3>
+                        <ol class="saude-passos">
+                            <li th:each="p : ${c.passos()}" th:text="${p}">Passo</li>
+                        </ol>
+                    </th:block>
                     <p class="saude-notas texto-livre" th:if="${c.notas() != null}" th:text="${c.notas()}">Notas</p>
                 </article>
             </section>

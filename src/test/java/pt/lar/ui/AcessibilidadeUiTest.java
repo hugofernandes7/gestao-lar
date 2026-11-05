@@ -188,6 +188,8 @@ class AcessibilidadeUiTest extends BaseVisualTest {
         verificar("admin: protocolos");
         pagina.navigate(url("/admin/protocolos/EPILEPSIA"));
         verificar("admin: editar protocolo");
+        pagina.navigate(url("/admin/protocolos/novo"));
+        verificar("admin: nova condição");
         pagina.navigate(url("/admin/utentes/" + quarto4.getId() + "/condicoes"));
         verificar("admin: condições do utente");
     }

@@ -8,6 +8,17 @@
     <p class="migalhas"><a href="/admin/protocolos">Protocolos</a> › <span th:text="${c.nome}">Condição</span></p>
     <h1 th:text="${c.nome}">Condição</h1>
 
+    <p>
+        <span class="etiqueta" th:classappend="${validado} ? 'etiqueta-ok' : 'etiqueta-aviso'"
+              th:text="${validado} ? 'Validado' : 'Por validar'">Por validar</span>
+        <span class="suave" th:text="${validacao}">Por validar</span>
+    </p>
+    <p class="suave" th:unless="${validado}">Enquanto estiver por validar, o tablet mostra «Protocolo por validar pela
+        enfermagem» em vez do texto, e o aviso de atuação não aparece no bloco Atenção.</p>
+    <form method="post" th:action="@{/admin/protocolos/{c}/validar(c=${c.codigo})}" th:unless="${validado}">
+        <button type="submit" class="botao">Validar este protocolo (enfermagem)</button>
+    </form>
+
     <form class="formulario" method="post" th:action="@{/admin/protocolos/{c}(c=${c.codigo})}">
         <label>Nome da condição <span class="suave pequeno">(só aparece na Saúde, com PIN, e aqui)</span>
             <input type="text" name="nome" th:value="${c.nome}" maxlength="80" required>
@@ -21,6 +32,7 @@
             <input type="text" name="aviso" th:value="${c.aviso}" maxlength="200">
         </label>
 
+        <p class="suave pequeno">Guardar altera o texto e volta a pôr o protocolo «por validar».</p>
         <div class="barra">
             <button type="submit" class="botao">Guardar</button>
             <a class="botao botao-claro" href="/admin/protocolos">Cancelar</a>
