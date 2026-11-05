@@ -154,6 +154,29 @@ class AcessibilidadeUiTest extends BaseVisualTest {
     }
 
     @Test
+    void refeicaoEPesoAcessibilidade() throws Exception {
+        pagina.navigate(url("/tablet/utentes/" + quarto1.getId() + "?painel=refeicao"));
+        pagina.waitForSelector(".painel-refeicao");
+        verificar("ficha: painel da refeição");
+        registoService.refeicao(quarto1.getId(), pt.lar.models.Refeicao.LANCHE, pt.lar.models.QuantidadeRefeicao.METADE, false, null);
+        pagina.navigate(url("/tablet/utentes/" + quarto1.getId()));
+        verificar("ficha: botão «Lanche: Metade»");
+        tocar(botao("Lanche: Metade"));
+        tocar(pagina.locator(".painel-refeicao .btn-prato", new com.microsoft.playwright.Page.LocatorOptions().setHasText("Pouco")));
+        pagina.waitForSelector(".painel-refeicao");
+        verificar("ficha: confirmar substituição");
+        pagina.navigate(url("/tablet/utentes/" + utentes.findAllByOrderByIdAsc().get(7).getId()));
+        verificar("ficha: alertas (come pouco)");
+        iniciarSessao(1, "1111");
+        pagina.navigate(url("/tablet/utentes/" + quarto1.getId() + "?aba=saude"));
+        pagina.waitForSelector(".saude-peso");
+        verificar("ficha: Saúde com peso e teclado");
+        entrarNoAdmin();
+        pagina.navigate(url("/admin/utentes/" + utentes.findAllByOrderByIdAsc().get(11).getId() + "/peso"));
+        verificar("admin: peso (histórico e gráfico)");
+    }
+
+    @Test
     void login() throws Exception {
         pagina.navigate(url("/admin/login"));
         verificar("login");

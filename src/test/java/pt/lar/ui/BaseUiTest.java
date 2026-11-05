@@ -53,6 +53,9 @@ public abstract class BaseUiTest extends BaseIntegracaoTest {
                 .setViewportSize(1280, 800)
                 .setLocale("pt-PT")
                 .setTimezoneId("Europe/Lisbon"));
+        // Conta os toques reais (cliques) em qualquer página: o teclado do PIN e o ecrã de acesso não contam, nem as teclas
+        // numéricas de introdução de valores (.tecla). Persiste entre navegações (sessionStorage).
+        contexto.addInitScript("document.addEventListener('click', function (e) { var a = e.target; if (a.closest && (a.closest('.tecla') || a.closest('.acesso'))) return; try { sessionStorage.setItem('toques', String(parseInt(sessionStorage.getItem('toques') || '0', 10) + 1)); } catch (x) {} }, true);");
         pagina = contexto.newPage();
         pagina.setDefaultTimeout(5_000);
         errosDoBrowser.clear();
@@ -66,6 +69,16 @@ public abstract class BaseUiTest extends BaseIntegracaoTest {
     void fecharPaginaEVerificarErros() {
         contexto.close();
         assertThat(errosDoBrowser).as("erros no browser").isEmpty();
+    }
+
+    /** Põe o contador de toques a zero (chamar logo antes do fluxo que se quer medir). */
+    protected void zerarToques() {
+        pagina.evaluate("() => sessionStorage.setItem('toques', '0')");
+    }
+
+    /** Toques feitos desde o último {@link #zerarToques()} (sem contar o PIN nem as teclas numéricas). */
+    protected int toques() {
+        return ((Number) pagina.evaluate("() => parseInt(sessionStorage.getItem('toques') || '0', 10)")).intValue();
     }
 
     protected String url(String caminho) {

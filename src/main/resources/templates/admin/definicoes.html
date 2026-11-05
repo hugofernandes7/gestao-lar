@@ -21,6 +21,9 @@
                 tem de estar ligada e, mesmo que a desligue aqui, o painel continua a pedir PIN
                 <span th:unless="${v.toma()}">(neste momento está desligada, sem efeito)</span>.
             </p>
+            <label class="checkbox"><input type="checkbox" name="refeicao" value="true" th:checked="${v.refeicao()}"> Refeições (sem PIN por defeito)</label>
+            <label class="checkbox"><input type="checkbox" name="peso" value="true" th:checked="${v.peso()}"> Peso (por defeito com PIN)</label>
+            <p class="suave pequeno">O peso regista-se no separador Saúde, que pede sempre número e PIN para abrir.</p>
         </fieldset>
 
         <fieldset>

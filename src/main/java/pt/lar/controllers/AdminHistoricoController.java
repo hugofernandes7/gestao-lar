@@ -37,12 +37,15 @@ public class AdminHistoricoController {
 
     @GetMapping("/admin/historico")
     String historico(@RequestParam(required = false) Long utente,
+                     @RequestParam(required = false) pt.lar.models.TipoRegisto tipo,
                      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dia,
                      Model model) {
         LocalDate d = dia != null ? dia : regras.hoje();
-        model.addAttribute("linhas", historico.listar(d, utente));
+        model.addAttribute("linhas", historico.listar(d, utente, tipo));
         model.addAttribute("utentes", utentes.listar(true));
         model.addAttribute("utenteSel", utente);
+        model.addAttribute("tipos", pt.lar.models.TipoRegisto.values());
+        model.addAttribute("tipoSel", tipo);
         model.addAttribute("dia", d);
         model.addAttribute("menu", "historico");
         return "admin/historico";

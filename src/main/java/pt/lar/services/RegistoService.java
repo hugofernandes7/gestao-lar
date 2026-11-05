@@ -8,17 +8,23 @@ import java.util.Optional;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import pt.lar.models.Funcionario;
 import pt.lar.models.LocalDor;
 import pt.lar.models.MedicacaoPlano;
+import pt.lar.models.Peso;
+import pt.lar.models.QuantidadeRefeicao;
+import pt.lar.models.Refeicao;
 import pt.lar.models.Registo;
 import pt.lar.models.RegistoNotaHistorico;
 import pt.lar.models.TipoRegisto;
 import pt.lar.models.Utente;
 import pt.lar.models.UtilizadorGestao;
 import pt.lar.repositories.MedicacaoPlanoRepository;
+import pt.lar.repositories.PesoRepository;
 import pt.lar.repositories.RegistoNotaHistoricoRepository;
 import pt.lar.repositories.RegistoRepository;
 import pt.lar.repositories.UtenteRepository;
@@ -40,6 +46,14 @@ public class RegistoService {
 
     public enum ResultadoDesfazer { DESFEITO, JA_ANULADO, FORA_DE_PRAZO, SO_QUEM_REGISTOU }
 
+    /** NOVA: registada. SUBSTITUIDA: havia uma e foi anulada. JA_EXISTE: havia uma e não se mexeu (falta confirmar). */
+    public enum EstadoRefeicao { NOVA, SUBSTITUIDA, JA_EXISTE }
+
+    /** {@code existente}: o registo que já lá estava (se havia). */
+    public record ResultadoRefeicao(Registo registo, EstadoRefeicao estado, Registo existente) {}
+
+    private final PesoRepository pesos;
+    private final TransactionTemplate transacao;
     private final RegistoRepository registos;
     private final RegistoNotaHistoricoRepository notas;
     private final UtenteRepository utentes;
@@ -50,7 +64,10 @@ public class RegistoService {
 
     public RegistoService(RegistoRepository registos, RegistoNotaHistoricoRepository notas, UtenteRepository utentes,
                           MedicacaoPlanoRepository planos,
-                          Regras regras, Clock clock, DefinicoesService definicoes) {
+                          Regras regras, Clock clock, DefinicoesService definicoes, PesoRepository pesos,
+                          PlatformTransactionManager tm) {
+        this.pesos = pesos;
+        this.transacao = new TransactionTemplate(tm);
         this.definicoes = definicoes;
         this.registos = registos;
         this.notas = notas;
@@ -124,6 +141,63 @@ public class RegistoService {
             return new Resultado(registos.findFirstByMedicacaoPlanoIdAndTipoAndDiaAndAnuladoFalse(planoId, TipoRegisto.TOMA, dia)
                     .orElseThrow(() -> e), false);
         }
+    }
+
+    /**
+     * Refeição (pequeno-almoço, almoço…) com a quantidade que comeu. No máximo uma de cada tipo por utente por dia
+     * (índice único). Se já existe e {@code substituir} é false, não se mexe em nada e devolve JA_EXISTE para a
+     * funcionária confirmar; com {@code substituir}, anula a anterior e cria a nova na mesma transação.
+     */
+    public ResultadoRefeicao refeicao(Long utenteId, Refeicao refeicao, QuantidadeRefeicao quantidade,
+                                      boolean substituir, Funcionario por) {
+        exigirSessao(utenteId, TipoRegisto.REFEICAO, por);
+        Utente u = utenteAtivo(utenteId);
+        Instant agora = clock.instant();
+        LocalDate dia = regras.diaDe(agora);
+        Optional<Registo> existente = registos.findFirstByUtenteIdAndTipoAndRefeicaoAndDiaAndAnuladoFalse(
+                utenteId, TipoRegisto.REFEICAO, refeicao, dia);
+        if (existente.isPresent() && !substituir) {
+            return new ResultadoRefeicao(existente.get(), EstadoRefeicao.JA_EXISTE, existente.get());
+        }
+        try {
+            if (existente.isEmpty()) {
+                return new ResultadoRefeicao(registos.saveAndFlush(
+                        novaRefeicao(u, refeicao, quantidade, agora, dia, por)), EstadoRefeicao.NOVA, null);
+            }
+            Long anteriorId = existente.get().getId();
+            Registo nova = transacao.execute(estado -> {
+                Registo anterior = registos.findById(anteriorId).orElseThrow();
+                if (!anterior.isAnulado()) anterior.anular(agora, null);
+                registos.saveAndFlush(anterior);               // o UPDATE tem de sair antes do INSERT (índice único)
+                return registos.saveAndFlush(novaRefeicao(u, refeicao, quantidade, agora, dia, por));
+            });
+            return new ResultadoRefeicao(nova, EstadoRefeicao.SUBSTITUIDA, existente.get());
+        } catch (DataIntegrityViolationException e) {         // outro tablet foi mais rápido
+            Registo outro = registos.findFirstByUtenteIdAndTipoAndRefeicaoAndDiaAndAnuladoFalse(
+                    utenteId, TipoRegisto.REFEICAO, refeicao, dia).orElseThrow(() -> e);
+            return new ResultadoRefeicao(outro, EstadoRefeicao.JA_EXISTE, outro);
+        }
+    }
+
+    private static Registo novaRefeicao(Utente u, Refeicao refeicao, QuantidadeRefeicao q, Instant agora, LocalDate dia,
+                                        Funcionario por) {
+        Registo r = new Registo(u, TipoRegisto.REFEICAO, q.name(), refeicao.getEtiqueta(), null, agora, dia);
+        r.setRefeicao(refeicao);
+        return comAutor(r, por);
+    }
+
+    /** Peso em kg (20–250, uma casa decimal). Exige sessão (por defeito) e fica ligado a um registo, que se pode desfazer. */
+    public Resultado peso(Long utenteId, java.math.BigDecimal kg, Funcionario por) {
+        exigirSessao(utenteId, TipoRegisto.PESO, por);
+        java.math.BigDecimal valor = PesoService.validar(kg);
+        Utente u = utenteAtivo(utenteId);
+        Instant agora = clock.instant();
+        Registo registo = transacao.execute(estado -> {
+            Registo r = registos.save(comAutor(new Registo(u, TipoRegisto.PESO, null, "Peso", null, agora, regras.diaDe(agora)), por));
+            pesos.save(new Peso(r, u, valor));
+            return r;
+        });
+        return new Resultado(registo, true);
     }
 
     /**

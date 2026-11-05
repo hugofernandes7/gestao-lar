@@ -18,6 +18,9 @@ public class Registo {
     private TipoRegisto tipo;
     /** QUEDA: COM_LESAO | SEM_LESAO. DOR: CABECA | PEITO | ABDOMEN | COSTAS | MEMBROS | OUTRO. */
     private String detalhe;
+    /** REFEICAO: qual refeição (o detalhe guarda a quantidade). */
+    @Enumerated(EnumType.STRING)
+    private Refeicao refeicao;
     private String nota;
     private String descricao;
     @ManyToOne(fetch = FetchType.LAZY)
@@ -59,6 +62,8 @@ public class Registo {
         this.anuladoPor = por;
     }
 
+    public Refeicao getRefeicao() { return refeicao; }
+    public void setRefeicao(Refeicao refeicao) { this.refeicao = refeicao; }
     public Long getId() { return id; }
     public Utente getUtente() { return utente; }
     public TipoRegisto getTipo() { return tipo; }

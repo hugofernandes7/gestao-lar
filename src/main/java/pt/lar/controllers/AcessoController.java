@@ -73,6 +73,6 @@ public class AcessoController {
         if (utenteId == null || utentes.findById(utenteId).filter(u -> u.isAtivo()).isEmpty()) return "/tablet";
         String base = "/tablet/utentes/" + utenteId;
         if ("saude".equals(painel)) return base + "?aba=saude";
-        return base + (painel != null && java.util.Set.of("medicacao", "queda", "dor").contains(painel) ? "?painel=" + painel : "");
+        return base + (painel != null && java.util.Set.of("medicacao", "queda", "dor", "refeicao").contains(painel) ? "?painel=" + painel : "");
     }
 }

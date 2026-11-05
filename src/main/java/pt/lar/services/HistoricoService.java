@@ -34,9 +34,15 @@ public class HistoricoService {
     }
 
     public List<Linha> listar(LocalDate dia, Long utenteId) {
-        List<Registo> lista = utenteId == null
+        return listar(dia, utenteId, null);
+    }
+
+    /** {@code tipo} null = todos os tipos de registo. */
+    public List<Linha> listar(LocalDate dia, Long utenteId, pt.lar.models.TipoRegisto tipo) {
+        List<Registo> lista = (utenteId == null
                 ? registos.historicoDoDia(dia)
-                : registos.historicoDoDiaDoUtente(dia, utenteId);
+                : registos.historicoDoDiaDoUtente(dia, utenteId)).stream()
+                .filter(r -> tipo == null || r.getTipo() == tipo).toList();
 
         Map<Long, List<VersaoNota>> versoes = lista.isEmpty() ? Map.of()
                 : notas.dosRegistos(lista.stream().map(Registo::getId).toList()).stream()
@@ -56,12 +62,16 @@ public class HistoricoService {
             case QUEDA -> "Queda";
             case DOR -> "Dor / mal-estar";
             case TOMA -> "Toma";
+            case REFEICAO -> "Refeição";
+            case PESO -> "Peso";
         };
         String descricao = switch (r.getTipo()) {
             case BANHO -> "";
             case QUEDA -> "COM_LESAO".equals(r.getDetalhe()) ? "Com lesão" : "Sem lesão";
             case DOR -> LocalDor.de(r.getDetalhe()).map(LocalDor::getEtiqueta).orElse("Outro");
             case TOMA -> r.getDescricao() == null ? "" : r.getDescricao();
+            case REFEICAO -> RefeicaoService.texto(r);
+            case PESO -> "";
         };
         String por = !r.isAnulado() ? null
                 : r.getAnuladoPor() != null ? r.getAnuladoPor().getNome() : "Tablet (sem identificação)";

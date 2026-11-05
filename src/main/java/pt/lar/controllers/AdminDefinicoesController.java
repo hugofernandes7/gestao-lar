@@ -33,18 +33,20 @@ public class AdminDefinicoesController {
     @PostMapping("/admin/definicoes")
     String guardar(@RequestParam(defaultValue = "false") boolean ocorrencia,
                    @RequestParam(defaultValue = "false") boolean toma,
+                   @RequestParam(defaultValue = "false") boolean refeicao,
+                   @RequestParam(defaultValue = "false") boolean peso,
                    @RequestParam(defaultValue = "") String minutos,
                    Principal quem, Model model, RedirectAttributes ra) {
         try {
             int m = Integer.parseInt(minutos.strip());
-            definicoes.guardar(ocorrencia, toma, m, utilizadores.findByUsername(quem.getName()).orElse(null));
+            definicoes.guardar(ocorrencia, toma, refeicao, peso, m, utilizadores.findByUsername(quem.getName()).orElse(null));
             ra.addFlashAttribute("sucesso", "Definições guardadas.");
             return "redirect:/admin/definicoes";
         } catch (NumberFormatException e) {
-            return preencher(model, new DefinicoesService.Atuais(ocorrencia, toma, 0),
+            return preencher(model, new DefinicoesService.Atuais(ocorrencia, toma, refeicao, peso, 0),
                     "A duração da sessão tem de ser um número inteiro de minutos.");
         } catch (DefinicaoInvalidaException e) {
-            return preencher(model, new DefinicoesService.Atuais(ocorrencia, toma, Integer.parseInt(minutos.strip())),
+            return preencher(model, new DefinicoesService.Atuais(ocorrencia, toma, refeicao, peso, Integer.parseInt(minutos.strip())),
                     e.getMessage());
         }
     }

@@ -14,6 +14,13 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import pt.lar.models.Funcionario;
 import pt.lar.models.LocalDor;
+import pt.lar.models.QuantidadeRefeicao;
+import pt.lar.models.Refeicao;
+import pt.lar.models.TipoRegisto;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+import pt.lar.services.PesoInvalidoException;
+import pt.lar.services.PesoService;
 import pt.lar.services.DefinicoesService;
 import pt.lar.services.DefinicoesService.Exigencia;
 import pt.lar.services.FichaService;
@@ -135,6 +142,68 @@ public class TabletController {
         return resposta(id, Painel.NENHUM, m, por, model);
     }
 
+    // ---- Refeição: 1.º toque abre o painel, 2.º toque escolhe a quantidade ----------------------------
+
+    /** Painel para outra refeição (a funcionária tocou no chip e escolheu). */
+    @GetMapping("/tablet/utentes/{id}/refeicao/{refeicao}")
+    Object painelRefeicao(@PathVariable Long id, @PathVariable String refeicao,
+                          @RequestAttribute(name = FUNCIONARIA, required = false) Funcionario por, Model model) {
+        if (por == null && definicoes.exige(TipoRegisto.REFEICAO)) return pedirAcesso(id, true, Painel.REFEICAO);
+        Refeicao r = Refeicao.de(refeicao).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        model.addAttribute("f", ficha.montar(id, Painel.REFEICAO, null, null, FichaService.Aba.REGISTOS, por != null, r, null));
+        return "tablet/ficha :: conteudo";
+    }
+
+    @PostMapping("/tablet/utentes/{id}/refeicao/{refeicao}/{quantidade}")
+    Object refeicao(@PathVariable Long id, @PathVariable String refeicao, @PathVariable String quantidade,
+                    @RequestAttribute(name = FUNCIONARIA, required = false) Funcionario por, Model model) {
+        return registarRefeicao(id, refeicao, quantidade, false, por, model);
+    }
+
+    /** Confirmação do 3.º toque: anula a refeição que já existia e regista a nova. */
+    @PostMapping("/tablet/utentes/{id}/refeicao/{refeicao}/{quantidade}/substituir")
+    Object substituirRefeicao(@PathVariable Long id, @PathVariable String refeicao, @PathVariable String quantidade,
+                              @RequestAttribute(name = FUNCIONARIA, required = false) Funcionario por, Model model) {
+        return registarRefeicao(id, refeicao, quantidade, true, por, model);
+    }
+
+    private Object registarRefeicao(Long id, String refeicao, String quantidade, boolean substituir, Funcionario por, Model model) {
+        Refeicao r = Refeicao.de(refeicao).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        QuantidadeRefeicao q = QuantidadeRefeicao.de(quantidade).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        var res = registos.refeicao(id, r, q, substituir, por);
+        Mensagem m;
+        switch (res.estado()) {
+            case NOVA -> m = Mensagem.ok(r.getEtiqueta() + " registada: " + q.getEtiqueta().toLowerCase()
+                    + " (às " + fmt.hora(res.registo().getDataHora()) + ")", res.registo(), false, Painel.NENHUM);
+            case SUBSTITUIDA -> m = Mensagem.ok(r.getEtiqueta() + " substituída: " + q.getEtiqueta().toLowerCase()
+                    + " (às " + fmt.hora(res.registo().getDataHora()) + ")", res.registo(), false, Painel.NENHUM);
+            default -> {                                  // já existe: pede confirmação em vez de registar
+                model.addAttribute("f", ficha.montar(id, Painel.REFEICAO, null, null, FichaService.Aba.REGISTOS, por != null, r, q));
+                return "tablet/ficha :: conteudo";
+            }
+        }
+        return resposta(id, Painel.NENHUM, m, por, model);
+    }
+
+    // ---- Peso (separador Saúde, com PIN) ---------------------------------------------------------------
+
+    @PostMapping("/tablet/utentes/{id}/peso")
+    Object peso(@PathVariable Long id, @RequestParam(defaultValue = "") String kg,
+                @RequestAttribute(name = FUNCIONARIA, required = false) Funcionario por, Model model) {
+        Mensagem m;
+        try {
+            Resultado r = registos.peso(id, new java.math.BigDecimal(kg.strip().replace(',', '.')), por);
+            m = new Mensagem("Peso registado: " + PesoService.kg(new java.math.BigDecimal(kg.strip().replace(',', '.'))) + " kg",
+                    r.registo().getId(), false, "saude", false);
+        } catch (NumberFormatException e) {
+            m = Mensagem.info("Escreva o peso.");
+        } catch (PesoInvalidoException e) {
+            m = Mensagem.info(e.getMessage());
+        }
+        model.addAttribute("f", ficha.montar(id, Painel.NENHUM, m, null, FichaService.Aba.SAUDE, por != null));
+        return "tablet/ficha :: conteudo";
+    }
+
     /** "Dado" exige sempre sessão de PIN (o serviço recusa sem ela; ver {@link #semSessao}). */
     @PostMapping("/tablet/utentes/{id}/tomas/{planoId}")
     Object toma(@PathVariable Long id, @PathVariable Long planoId,
@@ -158,6 +227,10 @@ public class TabletController {
             case FORA_DE_PRAZO -> Mensagem.info("Já não é possível desfazer aqui. Peça à enfermeira.");
             case SO_QUEM_REGISTOU -> Mensagem.info("Só quem fez este registo o pode desfazer (com o seu número e PIN). Peça à enfermeira.");
         };
+        if ("saude".equals(painel)) {                       // o peso desfaz-se na própria Saúde
+            model.addAttribute("f", ficha.montar(id, Painel.NENHUM, m, null, FichaService.Aba.SAUDE, por != null));
+            return "tablet/ficha :: conteudo";
+        }
         return resposta(id, Painel.de(painel), m, por, model);
     }
 
@@ -176,13 +249,16 @@ public class TabletController {
      */
     @ExceptionHandler(SessaoNecessariaException.class)
     ResponseEntity<Void> semSessao(SessaoNecessariaException e, HttpServletRequest pedido) {
+        boolean htmx = pedido.getHeader("HX-Request") != null;
+        if (e.getTipo() == TipoRegisto.PESO) return pedirAcessoPara(e.getUtenteId(), htmx, "saude");   // o peso vive na Saúde
         Painel p = switch (e.getTipo()) {
             case QUEDA -> Painel.QUEDA;
             case DOR -> Painel.DOR;
             case TOMA -> Painel.MEDICACAO;
+            case REFEICAO -> Painel.REFEICAO;
             default -> Painel.NENHUM;
         };
-        return pedirAcesso(e.getUtenteId(), pedido.getHeader("HX-Request") != null, p);
+        return pedirAcesso(e.getUtenteId(), htmx, p);
     }
 
     private String resposta(Long utenteId, Painel painel, Mensagem mensagem, Funcionario por, Model model) {
@@ -192,7 +268,8 @@ public class TabletController {
 
     /** Painéis que pedem sessão: medicação sempre; queda e dor se as definições o exigirem. */
     private boolean exigeSessaoParaPainel(Painel p) {
-        return p == Painel.MEDICACAO || ((p == Painel.QUEDA || p == Painel.DOR) && definicoes.exige(Exigencia.OCORRENCIA));
+        return p == Painel.MEDICACAO || ((p == Painel.QUEDA || p == Painel.DOR) && definicoes.exige(Exigencia.OCORRENCIA))
+                || (p == Painel.REFEICAO && definicoes.exige(Exigencia.REFEICAO));
     }
 
     /**

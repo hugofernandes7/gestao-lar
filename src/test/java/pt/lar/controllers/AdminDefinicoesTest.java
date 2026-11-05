@@ -101,7 +101,7 @@ class AdminDefinicoesTest extends BaseIntegracaoTest {
                 .andExpect(content().string(Matchers.containsString("O banho nunca exige sessão")));
 
         mvc.perform(post("/admin/definicoes").with(admin()).with(csrf()).param("banho", "true")
-                .param("ocorrencia", "true").param("toma", "true").param("minutos", "2"));
+                .param("ocorrencia", "true").param("toma", "true").param("peso", "true").param("minutos", "2"));
 
         assertThat(definicoesService.exige(pt.lar.models.TipoRegisto.BANHO)).isFalse();
         assertThat(definicoesRepo.count()).isZero();

@@ -49,6 +49,11 @@ public interface RegistoRepository extends JpaRepository<Registo, Long> {
             """)
     List<Registo> historicoDoDiaDoUtente(LocalDate dia, Long utenteId);
 
+    /** As últimas refeições registadas (não anuladas) do utente, mais recentes primeiro. */
+    List<Registo> findTop3ByUtenteIdAndTipoAndAnuladoFalseOrderByDataHoraDesc(Long utenteId, TipoRegisto tipo);
+
+    Optional<Registo> findFirstByUtenteIdAndTipoAndRefeicaoAndDiaAndAnuladoFalse(Long utenteId, TipoRegisto tipo, pt.lar.models.Refeicao refeicao, LocalDate dia);
+
     /** Ids dos planos que têm toma ativa registada no dia. */
     @Query("""
             select r.medicacaoPlano.id from Registo r

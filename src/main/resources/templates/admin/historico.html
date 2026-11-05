@@ -15,6 +15,12 @@
                         th:text="${u.quarto + ' — ' + u.nome + (u.ativo ? '' : ' (desativado)')}">1 — Nome</option>
             </select>
         </label>
+        <label>Tipo
+            <select name="tipo">
+                <option value="">Todos</option>
+                <option th:each="t : ${tipos}" th:value="${t.name()}" th:selected="${t == tipoSel}" th:text="${t.etiqueta}">Banho</option>
+            </select>
+        </label>
         <label>Dia
             <input type="date" name="dia" th:value="${dia}">
         </label>

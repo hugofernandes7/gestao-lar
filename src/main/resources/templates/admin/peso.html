@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-PT" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{admin/layout :: head('Peso')}"></head>
+<body>
+<header th:replace="~{admin/layout :: topo(${menu})}"></header>
+<main class="conteudo estreito">
+    <div th:replace="~{admin/layout :: mensagens}"></div>
+    <p class="migalhas"><a href="/admin/utentes">Utentes</a> › <span th:text="${utente.nome}">Nome</span></p>
+    <h1>Peso <small th:text="${'Quarto ' + utente.quarto}">Quarto 1</small></h1>
+    <p class="suave">O peso regista-se no tablet, no separador Saúde (com PIN). Aqui vê-se o histórico e a evolução.
+        Perda de mais de 5 % em 30 dias gera o alerta «Perda de peso — avisar enfermagem» no bloco Atenção.</p>
+
+    <p class="alerta alerta-info" th:if="${perda}" role="status"><strong>Perda de peso — avisar enfermagem.</strong>
+        Perda de mais de 5 % nos últimos 30 dias.</p>
+    <p th:if="${resumo != null}">Último peso: <strong th:text="${resumo.kg() + ' kg'}">72,5 kg</strong>
+        em <span th:text="${resumo.quando()}">28/10/2026 10:00</span>
+        <span th:if="${resumo.variacao() != null}" th:text="${'(' + resumo.variacao() + ')'}">(−1,0 kg desde 25/09)</span></p>
+    <p class="suave" th:if="${resumo == null}">Ainda sem pesagens.</p>
+
+    <section class="formulario" th:if="${resumo != null}">
+        <h2>Evolução</h2>
+        <div class="grafico-peso" th:utext="${grafico}"></div>
+    </section>
+
+    <table class="tabela tabela-compacta" th:unless="${linhas.isEmpty()}">
+        <thead><tr><th>Quando</th><th>Peso (kg)</th><th>Quem</th></tr></thead>
+        <tbody>
+        <tr th:each="l : ${linhas}">
+            <td th:text="${l.quando()}">28/10/2026 10:00</td>
+            <td th:text="${l.kg()}">72,5</td>
+            <td th:text="${l.quem()}">Ana (nº 1)</td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+</body>
+</html>

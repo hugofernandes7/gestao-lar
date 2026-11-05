@@ -16,6 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 import pt.lar.config.LarProperties;
 import pt.lar.models.Funcionario;
 import pt.lar.models.Horario;
+import pt.lar.models.QuantidadeRefeicao;
+import pt.lar.models.Refeicao;
 import pt.lar.models.MedicacaoPlano;
 import pt.lar.models.MedicacaoPlanoAuditoria;
 import pt.lar.models.Mobilidade;
@@ -85,13 +87,15 @@ public class DemoDataService {
     private final CondicaoProtocoloRepository catalogoCondicoes;
     private final UtenteCondicaoRepository condicoes;
     private final AcessoSaudeRepository acessosSaude;
+    private final pt.lar.repositories.PesoRepository pesos;
 
     public DemoDataService(UtenteRepository utentes, UtilizadorGestaoRepository utilizadores,
                            MedicacaoPlanoRepository planos, MedicacaoPlanoAuditoriaRepository auditoria,
                            RegistoRepository registos, RegistoNotaHistoricoRepository notas, Clock clock, LarProperties props,
                            PerfilService perfis, FuncionarioRepository funcionarios,
                            CondicaoProtocoloRepository catalogoCondicoes, UtenteCondicaoRepository condicoes,
-                           AcessoSaudeRepository acessosSaude) {
+                           AcessoSaudeRepository acessosSaude, pt.lar.repositories.PesoRepository pesos) {
+        this.pesos = pesos;
         this.catalogoCondicoes = catalogoCondicoes;
         this.condicoes = condicoes;
         this.acessosSaude = acessosSaude;
@@ -112,6 +116,7 @@ public class DemoDataService {
     public void repor() {
         acessosSaude.deleteAllInBatch();
         condicoes.deleteAllInBatch();
+        pesos.deleteAllInBatch();
         registos.deleteAllInBatch();
         auditoria.deleteAllInBatch();
         planos.deleteAllInBatch();
@@ -223,11 +228,55 @@ public class DemoDataService {
         validarProtocolosDeDemonstracao(autor, agora);
         condicoesDeDemonstracao(lista, hoje, autor, agora);
 
+        // 6c. Refeições dos dias anteriores (um utente que come pouco) e pesagens (um utente com perda de peso)
+        refeicoesEPesosDeDemonstracao(lista, hoje, zona);
+
         // 7. Quem registou: as funcionárias de demonstração (se existirem) alternam; um em cada cinco fica sem sessão (nulo)
         List<Funcionario> equipa = funcionarios.findAllByOrderByNumeroAsc();
         if (!equipa.isEmpty()) {
             for (Registo r : registos.findAll()) {
                 if (r.getId() % 5 != 0) r.setRealizadoPor(equipa.get((int) (r.getId() % equipa.size())));
+            }
+        }
+    }
+
+    private static final int IDX_COME_POUCO = 7;     // demência avançada: as últimas 3 refeições foram «Pouco» ou «Recusou»
+    private static final int IDX_PERDA_DE_PESO = 11;  // perdeu mais de 5 % em 30 dias
+
+    private void refeicoesEPesosDeDemonstracao(List<Utente> lista, LocalDate hoje, ZoneId zona) {
+        Random rnd = new Random(7);
+        Refeicao[] feitas = {Refeicao.PEQUENO_ALMOCO, Refeicao.ALMOCO, Refeicao.LANCHE, Refeicao.JANTAR};
+        int[][] horas = {{8, 20}, {12, 50}, {16, 5}, {19, 40}};
+        for (int i = 0; i < lista.size(); i++) {
+            for (int d = 7; d >= 1; d--) {                              // só dias anteriores: a secção «Hoje» fica como estava
+                for (int k = 0; k < feitas.length; k++) {
+                    QuantidadeRefeicao q;
+                    boolean ultimas3 = d == 1 && k >= 1;                  // almoço, lanche e jantar de ontem
+                    if (i == IDX_COME_POUCO) {
+                        q = ultimas3 ? (k == 2 ? QuantidadeRefeicao.RECUSOU : QuantidadeRefeicao.POUCO)
+                                : (rnd.nextInt(100) < 50 ? QuantidadeRefeicao.POUCO : QuantidadeRefeicao.METADE);
+                    } else {
+                        int p = rnd.nextInt(100);
+                        q = p < 58 ? QuantidadeRefeicao.TUDO : p < 88 ? QuantidadeRefeicao.METADE : p < 97 ? QuantidadeRefeicao.POUCO : QuantidadeRefeicao.RECUSOU;
+                        if (ultimas3 && k == 3) q = QuantidadeRefeicao.TUDO;   // o jantar de ontem fecha o alerta
+                    }
+                    LocalDate dia = hoje.minusDays(d);
+                    Instant quando = dia.atTime(horas[k][0], horas[k][1]).plusMinutes(rnd.nextInt(25)).atZone(zona).toInstant();
+                    Registo r = new Registo(lista.get(i), TipoRegisto.REFEICAO, q.name(), feitas[k].getEtiqueta(), null, quando, dia);
+                    r.setRefeicao(feitas[k]);
+                    registos.save(r);
+                }
+            }
+            // pesagens: há 3 e 2 meses (e há 4 semanas e 5 dias para o utente com perda de peso)
+            double base = 52 + (i * 37 % 40) + rnd.nextInt(10) / 10.0;
+            int[] dias = i == IDX_PERDA_DE_PESO ? new int[] {90, 60, 27, 5} : new int[] {90, 60, 28};
+            for (int j = 0; j < dias.length; j++) {
+                double kg = i == IDX_PERDA_DE_PESO ? base - new double[] {0, 0.5, 0.5, 4.5}[j]
+                        : base + (rnd.nextInt(9) - 4) / 10.0;
+                LocalDate dia = hoje.minusDays(dias[j]);
+                Instant quando = dia.atTime(9, 30).atZone(zona).toInstant();
+                Registo r = registos.save(new Registo(lista.get(i), TipoRegisto.PESO, null, "Peso", null, quando, dia));
+                pesos.save(new pt.lar.models.Peso(r, lista.get(i), java.math.BigDecimal.valueOf(kg).setScale(1, java.math.RoundingMode.HALF_UP)));
             }
         }
     }

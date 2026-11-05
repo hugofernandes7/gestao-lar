@@ -53,7 +53,22 @@ lar:
       # O banho nunca exige sessão (regra fixa, não configurável); só ocorrências e medicação.
       ocorrencia: true      # queda e dor
       toma: true
+      refeicao: false       # a refeição regista-se sem PIN
+      peso: true            # o peso (separador Saúde) exige sempre PIN
   sessao:
     minutos: 2              # duração da sessão depois da última interação
+  # Refeições: hora a que começa cada janela. A refeição de um registo é a última janela que já começou
+  # nesse dia (o registo faz-se depois de comer); antes da primeira janela, o pequeno-almoço.
+  refeicoes:
+    inicio:
+      PEQUENO_ALMOCO: "07:00"
+      ALMOCO: "12:00"
+      LANCHE: "15:30"
+      JANTAR: "18:30"
+      CEIA: "21:00"
+    poucas-seguidas: 3      # 3 refeições seguidas «Pouco» ou «Recusou» geram o alerta «Come pouco»
+  peso:
+    perda-percentagem: 5    # perda de mais de 5 %
+    perda-dias: 30          # em 30 dias: «Perda de peso — avisar enfermagem»
   demo:
     password: demo1234

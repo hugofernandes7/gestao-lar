@@ -144,9 +144,9 @@ h1, h2, h3, p { margin: 0; }
     100% { opacity: 0; visibility: hidden; pointer-events: none; }
 }
 
-.botoes { flex: none; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .6rem; }
-.btn-acao { flex-direction: column; min-height: 7rem; border-radius: 22px; gap: .4rem; font-size: 1.2rem; text-align: center; line-height: 1.1; }
-.btn-acao .ic { width: 2.6rem; height: 2.6rem; }
+.botoes { flex: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .6rem; }   /* 3×2: no máximo 6 botões */
+.btn-acao { flex-direction: column; min-height: 5.6rem; border-radius: 22px; gap: .4rem; font-size: 1.2rem; text-align: center; line-height: 1.1; }
+.btn-acao .ic { width: 2.2rem; height: 2.2rem; }
 .btn-acao.ativo { background: var(--azul-escuro); box-shadow: 0 0 0 4px var(--azul-realce); }
 
 .painel { background: #fff; border-radius: var(--raio); box-shadow: var(--sombra); padding: 1rem; display: flex; flex-direction: column; gap: .7rem; }
@@ -304,8 +304,8 @@ textarea::placeholder { color: var(--cinza); opacity: 1; }
 
 /* ---------- Separador "Saúde" (só com PIN): condições e "O que fazer" ---------- */
 .saude { display: flex; flex-direction: column; gap: .9rem; }
-.saude-cartao { display: flex; flex-direction: column; gap: .5rem; padding: 1rem 1.1rem; background: #fff; border-radius: var(--raio); box-shadow: var(--sombra); border-left: 8px solid var(--azul); }
-.saude-cartao h2 { font-size: 1.5rem; color: var(--azul); }
+.saude-cartao, .saude-peso { display: flex; flex-direction: column; gap: .5rem; padding: 1rem 1.1rem; background: #fff; border-radius: var(--raio); box-shadow: var(--sombra); border-left: 8px solid var(--azul); }
+.saude-cartao h2, .saude-peso h2 { font-size: 1.5rem; color: var(--azul); }
 .saude-cartao h3 { font-size: 1.1rem; color: var(--cinza); text-transform: uppercase; letter-spacing: .04em; }
 .saude-detalhe { display: flex; flex-wrap: wrap; gap: .3rem 1rem; font-size: 1.25rem; }
 .saude-passos { margin: 0; padding-left: 1.6rem; display: flex; flex-direction: column; gap: .45rem; font-size: 1.3rem; line-height: 1.35; }
@@ -324,3 +324,25 @@ textarea::placeholder { color: var(--cinza); opacity: 1; }
 /* Protocolo ainda não validado pela enfermagem: aviso neutro (sem cores de estado), texto escrito */
 .saude-por-validar { margin: .4rem 0 0; padding: .6rem .9rem; border: 2px dashed var(--azul-escuro); border-radius: .6rem;
   background: #fff; color: var(--azul-escuro); font-weight: 700; }
+
+/* ---------- Etapa 8: refeições e peso ---------- */
+button.btn-feito { cursor: pointer; }
+.btn-vazio { display: block; min-height: 5.6rem; }                      /* lugar livre na grelha 3×2 (Humor, Etapa 10) */
+.opcoes-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.btn-prato { flex-direction: column; min-height: 6.6rem; gap: .3rem; font-size: 1.3rem; }
+.btn-prato .ic { width: 2.8rem; height: 2.8rem; }
+.painel-refeicao h2 small { font-weight: 400; font-size: 1.1rem; color: var(--cinza); }
+.chips-refeicao { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .5rem; }
+.btn-chip { flex-direction: column; gap: 0; min-height: 3.9rem; padding: .2rem .4rem; font-size: 1.05rem; line-height: 1.1; background: var(--azul-claro); color: var(--azul); border-radius: 16px; box-shadow: none; text-align: center; }
+.btn-chip small { font-weight: 400; font-size: 1rem; }
+.btn-chip.chip-ativo { background: var(--azul); color: #fff; box-shadow: 0 0 0 3px var(--azul-realce); }
+.refeicao-aviso { margin: 0; font-size: 1.1rem; }
+.cel-alerta .rotulo { font-weight: 700; }
+.saude-peso .peso-corpo { display: flex; gap: 1rem; align-items: flex-start; flex-wrap: wrap; }
+.saude-peso .peso-info { flex: 1 1 14rem; display: flex; flex-direction: column; gap: .6rem; min-width: 0; }
+.saude-peso .peso-info p { margin: 0; }
+.peso-variacao { font-weight: 700; }
+.visor-num { width: 100%; min-height: 4.4rem; display: flex; align-items: center; justify-content: center; font-size: 2.2rem; letter-spacing: .05em; }
+.visor-num:not(:empty)::after { content: " kg"; font-size: 1.3rem; font-weight: 400; margin-left: .4rem; letter-spacing: 0; }
+.teclado-num { display: grid; grid-template-columns: repeat(3, 5.2rem); grid-auto-rows: 4.4rem; gap: .5rem; }
+.teclado-num .tecla { font-size: 1.8rem; }

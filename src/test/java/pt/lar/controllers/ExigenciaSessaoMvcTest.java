@@ -57,6 +57,8 @@ class ExigenciaSessaoMvcTest extends BaseIntegracaoTest {
             case QUEDA -> post(ficha() + "/queda").param("lesao", "true");
             case DOR -> post(ficha() + "/dor").param("local", "COSTAS");
             case TOMA -> post(ficha() + "/tomas/" + plano.getId());
+            case REFEICAO -> post(ficha() + "/refeicao/ALMOCO/TUDO");
+            case PESO -> post(ficha() + "/peso").param("kg", "70.0");
         };
         return b.header("HX-Request", "true");
     }

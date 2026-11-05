@@ -341,7 +341,7 @@ class AcessoUiTest extends BaseVisualTest {
         pagina.navigate(url("/tablet/utentes/" + quarto4.getId()));
 
         assertThat(pagina.locator(".col-dir .sessao")).isVisible();
-        assertThat(pagina.locator(".btn-acao")).hasCount(4);
+        assertThat(pagina.locator(".btn-acao")).hasCount(5);
         for (Locator b : pagina.locator(".btn-acao").all()) {
             assertThat(b).isVisible();
             assertThat(b.boundingBox().y + b.boundingBox().height).isLessThanOrEqualTo(800);

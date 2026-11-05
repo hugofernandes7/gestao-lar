@@ -16,6 +16,8 @@ import org.springframework.web.server.ResponseStatusException;
 import pt.lar.models.Horario;
 import pt.lar.models.LocalDor;
 import pt.lar.models.MedicacaoPlano;
+import pt.lar.models.QuantidadeRefeicao;
+import pt.lar.models.Refeicao;
 import pt.lar.models.Registo;
 import pt.lar.models.RiscoQueda;
 import pt.lar.models.TipoRegisto;
@@ -33,7 +35,7 @@ import pt.lar.services.Regras;
 public class FichaService {
 
     public enum Painel {
-        NENHUM, QUEDA, DOR, MEDICACAO, NOTA;
+        NENHUM, QUEDA, DOR, MEDICACAO, NOTA, REFEICAO;
 
         public static Painel de(String s) {
             if (s == null) return NENHUM;
@@ -84,9 +86,23 @@ public class FichaService {
      */
     public record Atencao(boolean preenchido, String alergias, String mobilidade, String transferencia, RiscoQueda risco,
                           String textura, String dieta, boolean ajudaAComer, List<Chip> comunicacao, List<String> avisos,
-                          String revisto, List<String> avisosAcao) {
+                          String revisto, List<String> avisosAcao, List<String> alertas) {
         public String riscoClasse() {
             return risco == null ? "" : risco.name().toLowerCase();
+        }
+    }
+
+    /** Uma refeição na lista de escolha: {@code existente} é a quantidade já registada hoje (ou null). */
+    public record OpcaoRefeicao(Refeicao refeicao, String etiqueta, String existente) {}
+
+    /**
+     * Painel da refeição: a refeição escolhida (a detetada pela hora, ou a que a funcionária escolheu), o que já está
+     * registado nela, e o pedido de confirmação quando se vai substituir.
+     */
+    public record PainelRefeicao(Refeicao escolhida, String etiqueta, String existente, String horaExistente,
+                                 QuantidadeRefeicao confirmar, List<OpcaoRefeicao> opcoes) {
+        public List<QuantidadeRefeicao> quantidades() {
+            return List.of(QuantidadeRefeicao.values());
         }
     }
 
@@ -96,7 +112,8 @@ public class FichaService {
     public record Ficha(Utente utente, List<Aviso> avisos, Registo banho, Painel painel, Mensagem mensagem,
                         List<GrupoToma> grupos, String planoAtualizado, List<LinhaHoje> hoje, Long registoNota,
                         String notaAtual, Aba aba, Atencao atencao, SobreMim sobre,
-                        List<SaudeService.CartaoCondicao> saude) {
+                        List<SaudeService.CartaoCondicao> saude, String textoRefeicao, PainelRefeicao refeicao,
+                        PesoService.Resumo peso) {
         public List<LocalDor> locaisDor() {
             return List.of(LocalDor.values());
         }
@@ -111,10 +128,14 @@ public class FichaService {
     private final pt.lar.config.LarProperties props;
     private final PerfilService perfis;
     private final SaudeService saudeService;
+    private final RefeicaoService refeicoes;
+    private final PesoService pesos;
 
     public FichaService(UtenteRepository utentes, RegistoRepository registos, MedicacaoPlanoRepository planos,
                         Regras regras, Formatos fmt, Clock clock, pt.lar.config.LarProperties props,
-                        PerfilService perfis, SaudeService saudeService) {
+                        PerfilService perfis, SaudeService saudeService, RefeicaoService refeicoes, PesoService pesos) {
+        this.refeicoes = refeicoes;
+        this.pesos = pesos;
         this.perfis = perfis;
         this.saudeService = saudeService;
         this.utentes = utentes;
@@ -139,6 +160,15 @@ public class FichaService {
      * nem o painel, nem o plano, nem o nome dos medicamentos na secção "Hoje".
      */
     public Ficha montar(Long utenteId, Painel painel, Mensagem mensagem, Long registoNota, Aba aba, boolean comSessao) {
+        return montar(utenteId, painel, mensagem, registoNota, aba, comSessao, null, null);
+    }
+
+    /**
+     * Com o painel da refeição: {@code refeicaoEscolhida} (null = a detetada pela hora), {@code confirmar} (a quantidade
+     * a confirmar quando já existe registo).
+     */
+    public Ficha montar(Long utenteId, Painel painel, Mensagem mensagem, Long registoNota, Aba aba, boolean comSessao,
+                        Refeicao refeicaoEscolhida, QuantidadeRefeicao confirmar) {
         if (painel == Painel.MEDICACAO && !comSessao) painel = Painel.NENHUM;
         if (aba == Aba.SAUDE && !comSessao) aba = Aba.REGISTOS;   // a Saúde nunca se mostra sem sessão de PIN
         if (aba != Aba.REGISTOS) painel = Painel.NENHUM;          // "Sobre mim" e "Saúde" são só leitura: sem painéis
@@ -174,8 +204,30 @@ public class FichaService {
         List<LinhaHoje> hoje = new ArrayList<>();
         for (int i = doDia.size() - 1; i >= 0; i--) {
             Registo r = doDia.get(i);
-            hoje.add(new LinhaHoje(r.getId(), r.getTipo().isOcorrencia(), fmt.hora(r.getDataHora()),
-                    textoHoje(r, comSessao), r.getNota()));
+            String texto = textoHoje(r, comSessao);
+            if (texto == null) continue;                  // p. ex. o peso: não aparece nas vistas normais
+            hoje.add(new LinhaHoje(r.getId(), r.getTipo().isOcorrencia(), fmt.hora(r.getDataHora()), texto, r.getNota()));
+        }
+
+        // Refeição: o botão mostra «Almoço: Metade» se a refeição de agora já está registada; o painel abre na detetada
+        Refeicao detetada = refeicoes.atual(agora);
+        Map<Refeicao, Registo> refeicoesDeHoje = new EnumMap<>(Refeicao.class);
+        for (Registo r : doDia) if (r.getTipo() == TipoRegisto.REFEICAO && r.getRefeicao() != null) refeicoesDeHoje.put(r.getRefeicao(), r);
+        Registo daDetetada = refeicoesDeHoje.get(detetada);
+        String textoRefeicao = daDetetada == null ? null : RefeicaoService.texto(daDetetada);
+        PainelRefeicao painelRefeicao = null;
+        if (painel == Painel.REFEICAO) {
+            Refeicao escolhida = refeicaoEscolhida != null ? refeicaoEscolhida : detetada;
+            Registo existente = refeicoesDeHoje.get(escolhida);
+            List<OpcaoRefeicao> opcoes = new ArrayList<>();
+            for (Refeicao r : Refeicao.values()) {
+                Registo x = refeicoesDeHoje.get(r);
+                opcoes.add(new OpcaoRefeicao(r, r.getEtiqueta(), x == null ? null
+                        : QuantidadeRefeicao.de(x.getDetalhe()).map(QuantidadeRefeicao::getEtiqueta).orElse(null)));
+            }
+            painelRefeicao = new PainelRefeicao(escolhida, escolhida.getEtiqueta(),
+                    existente == null ? null : QuantidadeRefeicao.de(existente.getDetalhe()).map(QuantidadeRefeicao::getEtiqueta).orElse(null),
+                    existente == null ? null : fmt.hora(existente.getDataHora()), existente == null ? null : confirmar, opcoes);
         }
 
         // Painel de nota: pré-preenche com a nota existente (a funcionária pode editar mais tarde).
@@ -189,16 +241,21 @@ public class FichaService {
         Optional<UtentePerfil> perfil = perfis.obter(utenteId);
         // Avisos de atuação das condições (sem o nome da condição): aparecem sem PIN. Os nomes só existem na aba Saúde.
         List<String> avisosAcao = saudeService.avisosDeAtuacao(utenteId);
-        Atencao atencao = perfil.map(p -> atencao(p, avisosAcao)).orElse(new Atencao(false, null, null, null, null, null, null,
-                false, List.of(), List.of(), null, avisosAcao));
+        // Alertas (sem diagnósticos, sem medicamentos): aparecem no bloco Atenção, nunca na grelha
+        List<String> alertas = new ArrayList<>();
+        if (refeicoes.comePouco(utenteId)) alertas.add(RefeicaoService.ALERTA_COME_POUCO);
+        if (pesos.perdaDePeso(utenteId)) alertas.add(PesoService.ALERTA_PERDA);
+        Atencao atencao = perfil.map(p -> atencao(p, avisosAcao, alertas)).orElse(new Atencao(false, null, null, null, null, null, null,
+                false, List.of(), List.of(), null, avisosAcao, alertas));
         SobreMim sobre = perfil.map(p -> new SobreMim(p.getTratamento(), p.getGostos())).orElse(new SobreMim(null, null));
 
         return new Ficha(utente, avisos, banho, painel, mensagem, grupos, textoPlanoAtualizado(plano), hoje,
                 registoNota, notaAtual, aba, atencao, sobre,
-                aba == Aba.SAUDE ? saudeService.cartoes(utenteId) : null);
+                aba == Aba.SAUDE ? saudeService.cartoes(utenteId) : null, textoRefeicao, painelRefeicao,
+                aba == Aba.SAUDE ? pesos.resumo(utenteId).orElse(null) : null);
     }
 
-    private Atencao atencao(UtentePerfil p, List<String> avisosAcao) {
+    private Atencao atencao(UtentePerfil p, List<String> avisosAcao, List<String> alertas) {
         List<Chip> comunicacao = new ArrayList<>();
         if (p.isOuveMalEsq()) comunicacao.add(new Chip("ouvido", "Ouve mal (esq.)"));
         if (p.isOuveMalDir()) comunicacao.add(new Chip("ouvido", "Ouve mal (dir.)"));
@@ -212,7 +269,7 @@ public class FichaService {
                 + (p.getRevistoPor() != null ? " por " + p.getRevistoPor().getNome() : "");
         return new Atencao(true, p.getAlergias(), p.getMobilidade().getEtiqueta(), transferencia, p.getRiscoQueda(),
                 p.getTextura().getEtiqueta(), p.getDieta(), p.isAjudaAComer(), comunicacao,
-                p.getAvisos() == null ? List.of() : List.of(p.getAvisos()), revisto, avisosAcao);
+                p.getAvisos() == null ? List.of() : List.of(p.getAvisos()), revisto, avisosAcao, alertas);
     }
 
     private String textoAviso(Registo r) {
@@ -229,6 +286,8 @@ public class FichaService {
             case QUEDA -> "Queda — " + ("COM_LESAO".equals(r.getDetalhe()) ? "com lesão" : "sem lesão");
             case DOR -> "Dor / mal-estar — " + localDor(r).toLowerCase();
             case TOMA -> comSessao ? "Medicação: " + r.getDescricao() : "Medicação dada";
+            case REFEICAO -> RefeicaoService.texto(r);
+            case PESO -> comSessao ? "Peso registado" : null;     // o valor nunca aparece aqui; só na Saúde
         };
     }
 

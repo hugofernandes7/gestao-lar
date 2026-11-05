@@ -27,6 +27,7 @@
                 <a class="botao botao-claro" th:href="@{/admin/utentes/{id}/editar(id=${u.id})}">Editar</a>
                 <a class="botao botao-claro" th:href="@{/admin/utentes/{id}/perfil(id=${u.id})}">Perfil</a>
                 <a class="botao botao-claro" th:href="@{/admin/utentes/{id}/condicoes(id=${u.id})}">Condições</a>
+                <a class="botao botao-claro" th:href="@{/admin/utentes/{id}/peso(id=${u.id})}">Peso</a>
                 <a class="botao botao-claro" th:href="@{/admin/utentes/{id}/plano(id=${u.id})}">Plano de medicação</a>
                 <form th:action="@{/admin/utentes/{id}/ativo(id=${u.id})}" method="post" class="em-linha">
                     <input type="hidden" name="ativo" th:value="${!u.ativo}">

@@ -33,7 +33,9 @@ public class DefinicoesService {
     /** Grupos de registo com exigência configurável. Queda e dor partilham OCORRENCIA. O banho NUNCA exige sessão. */
     public enum Exigencia {
         OCORRENCIA("registo.exige-sessao.ocorrencia", "Ocorrências (queda e dor)"),
-        TOMA("registo.exige-sessao.toma", "Medicação (toma)");
+        TOMA("registo.exige-sessao.toma", "Medicação (toma)"),
+        REFEICAO("registo.exige-sessao.refeicao", "Refeições"),
+        PESO("registo.exige-sessao.peso", "Peso");
 
         public final String chave;
         public final String etiqueta;
@@ -49,12 +51,19 @@ public class DefinicoesService {
                 case BANHO -> Optional.empty();
                 case QUEDA, DOR -> Optional.of(OCORRENCIA);
                 case TOMA -> Optional.of(TOMA);
+                case REFEICAO -> Optional.of(REFEICAO);
+                case PESO -> Optional.of(PESO);
             };
         }
     }
 
     /** Valores configurados. {@code toma} pode ser false mas não tem efeito: ver {@link #exige(Exigencia)}. */
-    public record Atuais(boolean ocorrencia, boolean toma, int minutos) {}
+    public record Atuais(boolean ocorrencia, boolean toma, boolean refeicao, boolean peso, int minutos) {
+        /** Com a refeição e o peso nos valores por defeito (sem PIN para a refeição, com PIN para o peso). */
+        public Atuais(boolean ocorrencia, boolean toma, int minutos) {
+            this(ocorrencia, toma, false, true, minutos);
+        }
+    }
 
     public record Alteracao(String quando, String quem, String texto) {}
 
@@ -88,6 +97,8 @@ public class DefinicoesService {
         return new Atuais(
                 bool(guardadas, Exigencia.OCORRENCIA.chave, yml.ocorrencia()),
                 bool(guardadas, Exigencia.TOMA.chave, yml.toma()),
+                bool(guardadas, Exigencia.REFEICAO.chave, yml.refeicao()),
+                bool(guardadas, Exigencia.PESO.chave, yml.peso()),
                 inteiro(guardadas, CHAVE_MINUTOS, props.sessao().minutos()));
     }
 
@@ -100,6 +111,8 @@ public class DefinicoesService {
         return switch (e) {
             case OCORRENCIA -> a.ocorrencia();
             case TOMA -> true;
+            case REFEICAO -> a.refeicao();
+            case PESO -> a.peso();
         };
     }
 
@@ -111,8 +124,15 @@ public class DefinicoesService {
         return Duration.ofMinutes(atuais().minutos());
     }
 
+    /** Guarda ocorrência, toma e duração; a exigência da refeição e do peso mantém-se. */
     @Transactional
     public void guardar(boolean ocorrencia, boolean toma, int minutos, UtilizadorGestao por) {
+        Atuais a = atuais();
+        guardar(ocorrencia, toma, a.refeicao(), a.peso(), minutos, por);
+    }
+
+    @Transactional
+    public void guardar(boolean ocorrencia, boolean toma, boolean refeicao, boolean peso, int minutos, UtilizadorGestao por) {
         if (minutos < MINUTOS_MIN || minutos > MINUTOS_MAX) {
             throw new DefinicaoInvalidaException("A duração da sessão tem de estar entre " + MINUTOS_MIN
                     + " e " + MINUTOS_MAX + " minutos.");
@@ -120,6 +140,8 @@ public class DefinicoesService {
         Atuais antes = atuais();
         alterar(Exigencia.OCORRENCIA.chave, String.valueOf(antes.ocorrencia()), String.valueOf(ocorrencia), por);
         alterar(Exigencia.TOMA.chave, String.valueOf(antes.toma()), String.valueOf(toma), por);
+        alterar(Exigencia.REFEICAO.chave, String.valueOf(antes.refeicao()), String.valueOf(refeicao), por);
+        alterar(Exigencia.PESO.chave, String.valueOf(antes.peso()), String.valueOf(peso), por);
         alterar(CHAVE_MINUTOS, String.valueOf(antes.minutos()), String.valueOf(minutos), por);
     }
 

@@ -151,6 +151,58 @@ class CapturasEsteticasTest extends BaseVisualTest {
         guardar(pasta, "15-admin-nova-condicao", true);
     }
 
+    /** Etapa 8: grelha 3×2, refeição (painel, confirmação, registada), alertas, peso na Saúde e no admin. */
+    @Test
+    void capturarEtapa8() throws Exception {
+        Path pasta = Path.of("screenshots", "etapa8");
+        Files.createDirectories(pasta);
+        var todos = utentes.findAllByOrderByIdAsc();
+        var normal = todos.get(0);
+
+        pagina.navigate(url("/tablet/utentes/" + normal.getId()));
+        pagina.waitForSelector(".botoes");
+        guardar(pasta, "01-ficha-grelha-3x2", false);
+        pagina.navigate(url("/tablet/utentes/" + normal.getId() + "?painel=refeicao"));
+        pagina.waitForSelector(".painel-refeicao");
+        guardar(pasta, "02-refeicao-quantidade", false);
+        pagina.locator(".chips-refeicao .btn-chip[hx-get$='/ALMOCO']").click();
+        pagina.waitForSelector(".chip-ativo");
+        guardar(pasta, "03-refeicao-trocar-de-refeicao", false);
+        pagina.locator(".painel-refeicao .btn-prato").nth(1).click();
+        pagina.waitForSelector(".mensagem");
+        guardar(pasta, "04-refeicao-registada-com-desfazer", false);
+        registoService.refeicao(normal.getId(), pt.lar.models.Refeicao.LANCHE, pt.lar.models.QuantidadeRefeicao.METADE, false, null);
+        pagina.navigate(url("/tablet/utentes/" + normal.getId()));
+        pagina.locator(".btn-acao:has-text('Lanche:')").click();
+        pagina.waitForSelector(".painel-refeicao");
+        pagina.locator(".painel-refeicao .btn-prato").nth(2).click();
+        pagina.waitForSelector(".painel-refeicao");
+        guardar(pasta, "05-refeicao-confirmar-substituicao", false);
+
+        pagina.navigate(url("/tablet/utentes/" + todos.get(7).getId()));
+        guardar(pasta, "06-atencao-come-pouco", false);
+        pagina.navigate(url("/tablet/utentes/" + todos.get(11).getId()));
+        guardar(pasta, "07-atencao-perda-de-peso", false);
+
+        iniciarSessao(1, "1111");
+        pagina.navigate(url("/tablet/utentes/" + todos.get(11).getId() + "?aba=saude"));
+        pagina.waitForSelector(".saude-peso");
+        guardar(pasta, "08-saude-peso-teclado", false);
+        for (String t : new String[] {"6", "4", ",", "5"}) pagina.locator(".saude-peso .tecla[data-tecla='" + t + "']").click();
+        guardar(pasta, "09-saude-peso-digitado", false);
+        pagina.locator("button:has-text('Guardar peso')").click();
+        pagina.waitForSelector(".mensagem");
+        guardar(pasta, "10-saude-peso-guardado-com-variacao", false);
+
+        entrarNoAdmin();
+        pagina.navigate(url("/admin/utentes/" + todos.get(11).getId() + "/peso"));
+        guardar(pasta, "11-admin-peso-grafico", true);
+        pagina.navigate(url("/admin/historico?dia=2026-11-02"));
+        guardar(pasta, "12-admin-historico-filtro-tipo", true);
+        pagina.navigate(url("/admin/definicoes"));
+        guardar(pasta, "13-admin-definicoes-sessao", true);
+    }
+
     private void entrarNoAdminDe(Path pasta) throws Exception {
         entrarNoAdmin();
         pagina.navigate(url("/admin/protocolos"));

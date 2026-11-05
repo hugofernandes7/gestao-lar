@@ -50,12 +50,19 @@
                 Perfil de atenção ainda por preencher. Peça à enfermagem.
             </p>
 
-            <div class="atencao-grelha" th:if="${!a.preenchido() and !a.avisosAcao().isEmpty()}">
-                <div class="cel cuidado cel-aviso cel-acao">
+            <div class="atencao-grelha" th:if="${!a.preenchido() and (!a.avisosAcao().isEmpty() or !a.alertas().isEmpty())}">
+                <div class="cel cuidado cel-aviso cel-acao" th:unless="${a.avisosAcao().isEmpty()}">
                     <th:block th:replace="~{tablet/icones :: ic('info')}"/>
                     <span class="cel-texto">
                         <span class="rotulo">O que fazer se…</span>
                         <strong th:each="av : ${a.avisosAcao()}" th:text="${av}">Aviso de atuação</strong>
+                    </span>
+                </div>
+                <div class="cel cuidado cel-aviso cel-alerta" th:unless="${a.alertas().isEmpty()}">
+                    <th:block th:replace="~{tablet/icones :: ic('info')}"/>
+                    <span class="cel-texto">
+                        <span class="rotulo">Alertas</span>
+                        <strong th:each="al : ${a.alertas()}" th:text="${al}">Come pouco há 3 refeições</strong>
                     </span>
                 </div>
             </div>
@@ -124,6 +131,15 @@
                         <strong th:each="av : ${a.avisosAcao()}" th:text="${av}">Aviso de atuação</strong>
                     </span>
                 </div>
+
+                <!-- Alertas (sem diagnósticos): come pouco, perda de peso. Nunca vão para a grelha. -->
+                <div class="cel cuidado cel-aviso cel-alerta" th:unless="${a.alertas().isEmpty()}">
+                    <th:block th:replace="~{tablet/icones :: ic('info')}"/>
+                    <span class="cel-texto">
+                        <span class="rotulo">Alertas</span>
+                        <strong th:each="al : ${a.alertas()}" th:text="${al}">Come pouco há 3 refeições</strong>
+                    </span>
+                </div>
             </div>
 
             <p class="revisto" th:if="${a.preenchido()}" th:text="${a.revisto()}">Revisto em 01/11 por Enfermeira</p>
@@ -186,6 +202,16 @@
                 <th:block th:replace="~{tablet/icones :: ic('banho')}"/> <span>Banho</span>
             </button>
 
+            <!-- Refeição: sem PIN (configurável). Mostra o nome da refeição e a quantidade se a refeição de agora já está registada. -->
+            <button type="button" class="btn btn-acao" th:classappend="${(f.painel().name() == 'REFEICAO' ? 'ativo ' : '') + (f.textoRefeicao() != null ? 'btn-feito' : '')}"
+                    th:hx-get="@{${base} + '?painel=refeicao'}">
+                <th:block th:replace="~{tablet/icones :: ic(${f.textoRefeicao() != null ? 'ok' : 'comida'})}"/>
+                <span th:text="${f.textoRefeicao() != null ? f.textoRefeicao() : 'Refeição'}">Refeição</span>
+            </button>
+
+            <!-- (o lugar de «Humor» fica livre até à Etapa 10: a grelha é 3×2 e as posições não mudam) -->
+            <span class="btn-vazio" aria-hidden="true"></span>
+
             <button type="button" class="btn btn-acao" th:classappend="${f.painel().name() == 'QUEDA'} ? 'ativo'"
                     th:hx-get="@{${base} + '?painel=queda'}">
                 <th:block th:replace="~{tablet/icones :: ic('queda')}"/> <span>Queda</span>
@@ -219,6 +245,42 @@
 
             <!-- Separador "Saúde" (só com sessão de PIN; só leitura): condições e o que fazer. -->
             <section class="saude" th:if="${f.aba().name() == 'SAUDE'}" aria-label="Saúde">
+
+                <!-- Peso (enfermagem): teclado numérico próprio (1 decimal); mostra o último peso e a variação. -->
+                <article class="saude-peso" aria-label="Peso" data-teclado data-decimais="1" data-min="20" data-max="250">
+                    <h2>Peso</h2>
+                    <div class="peso-corpo">
+                        <div class="peso-info">
+                            <p class="peso-ultimo" th:if="${f.peso() != null}">
+                                Último peso: <strong th:text="${f.peso().kg() + ' kg'}">72,5 kg</strong>
+                                <span class="suave" th:text="${'em ' + f.peso().quando()}">em 28/10/2026 10:00</span><br>
+                                <span class="peso-variacao" th:if="${f.peso().variacao() != null}" th:text="${f.peso().variacao()}">−1,0 kg desde 25/09</span>
+                            </p>
+                            <p class="vazio" th:if="${f.peso() == null}">Ainda sem pesagens.</p>
+                            <div class="visor visor-num" data-visor data-vazio="Peso em kg" role="status" aria-live="polite" aria-label="Peso em quilogramas"></div>
+                            <input type="hidden" name="kg" data-valor>
+                            <button type="button" class="btn btn-opcao" data-guardar disabled
+                                    th:hx-post="@{${base} + '/peso'}" hx-include="[data-valor]">Guardar peso</button>
+                        </div>
+                        <div class="teclado-num" role="group" aria-label="Teclado numérico">
+                            <button type="button" class="tecla" data-tecla="1">1</button>
+                            <button type="button" class="tecla" data-tecla="2">2</button>
+                            <button type="button" class="tecla" data-tecla="3">3</button>
+                            <button type="button" class="tecla" data-tecla="4">4</button>
+                            <button type="button" class="tecla" data-tecla="5">5</button>
+                            <button type="button" class="tecla" data-tecla="6">6</button>
+                            <button type="button" class="tecla" data-tecla="7">7</button>
+                            <button type="button" class="tecla" data-tecla="8">8</button>
+                            <button type="button" class="tecla" data-tecla="9">9</button>
+                            <button type="button" class="tecla" data-tecla="," aria-label="Vírgula">,</button>
+                            <button type="button" class="tecla" data-tecla="0">0</button>
+                            <button type="button" class="tecla tecla-apagar" data-tecla="apagar" aria-label="Apagar">
+                                <th:block th:replace="~{tablet/icones :: ic('apagar')}"/>
+                            </button>
+                        </div>
+                    </div>
+                </article>
+
                 <p class="vazio" th:if="${f.saude().isEmpty()}">Sem condições de saúde registadas.</p>
                 <article class="saude-cartao" th:each="c : ${f.saude()}">
                     <h2 th:text="${c.nome()}">Condição</h2>
@@ -256,6 +318,52 @@
                         <button type="button" class="btn btn-opcao" th:each="l : ${f.locaisDor()}"
                                 th:hx-post="@{${base} + '/dor?local=' + ${l.name()}}" th:text="${l.etiqueta}">Cabeça</button>
                     </div>
+                    <button type="button" class="btn btn-secundario" th:hx-get="@{${base}}">Cancelar</button>
+                </div>
+
+                <!-- Painel: Refeição. 2.º toque = quantidade; o chip troca de refeição; se já existe, pede confirmação. -->
+                <div class="painel painel-refeicao" th:if="${f.painel().name() == 'REFEICAO'}" th:with="r=${f.refeicao()}">
+                    <th:block th:if="${r.confirmar() != null}">
+                        <h2>Substituir o registo?</h2>
+                        <p class="refeicao-aviso">
+                            <strong th:text="${r.etiqueta()}">Almoço</strong> já está registado como
+                            <strong th:text="${r.existente()}">Metade</strong> (às <span th:text="${r.horaExistente()}">13:10</span>).
+                            Substituir por <strong th:text="${r.confirmar().etiqueta}">Pouco</strong>?
+                        </p>
+                        <div class="opcoes">
+                            <button type="button" class="btn btn-opcao"
+                                    th:hx-post="@{${base} + '/refeicao/' + ${r.escolhida().name()} + '/' + ${r.confirmar().name()} + '/substituir'}">Substituir</button>
+                            <button type="button" class="btn btn-opcao btn-opcao-neutro"
+                                    th:hx-get="@{${base} + '/refeicao/' + ${r.escolhida().name()}}">Cancelar</button>
+                        </div>
+                    </th:block>
+
+                    <th:block th:unless="${r.confirmar() != null}">
+                        <h2>Quanto comeu? <small th:text="${r.etiqueta()}">Almoço</small></h2>
+
+                        <!-- Chip de cada refeição: a detetada pela hora vem marcada; trocar custa 1 toque (só aqui). -->
+                        <div class="chips-refeicao" role="group" aria-label="Refeição">
+                            <button type="button" class="btn btn-chip" th:each="o : ${r.opcoes()}"
+                                    th:classappend="${o.refeicao() == r.escolhida()} ? 'chip-ativo'"
+                                    th:attr="aria-pressed=${o.refeicao() == r.escolhida()}"
+                                    th:hx-get="@{${base} + '/refeicao/' + ${o.refeicao().name()}}">
+                                <span th:text="${o.etiqueta()}">Almoço</span>
+                                <small th:if="${o.existente() != null}" th:text="${o.existente()}">Metade</small>
+                            </button>
+                        </div>
+
+                        <p class="refeicao-aviso" th:if="${r.existente() != null}">
+                            Já registado às <span th:text="${r.horaExistente()}">13:10</span>: <strong th:text="${r.existente()}">Metade</strong>.
+                            Escolher outra quantidade pede confirmação.
+                        </p>
+                        <div class="opcoes opcoes-4">
+                            <button type="button" class="btn btn-opcao btn-prato" th:each="q : ${r.quantidades()}"
+                                    th:hx-post="@{${base} + '/refeicao/' + ${r.escolhida().name()} + '/' + ${q.name()}}">
+                                <th:block th:replace="~{tablet/icones :: ic(${'prato-' + #strings.toLowerCase(q.name())})}"/>
+                                <span th:text="${q.etiqueta}">Tudo</span>
+                            </button>
+                        </div>
+                    </th:block>
                     <button type="button" class="btn btn-secundario" th:hx-get="@{${base}}">Cancelar</button>
                 </div>
 
@@ -327,5 +435,6 @@
 </div>
 
 <script src="/js/tablet.js"></script>
+<script src="/js/teclado-num.js"></script>
 </body>
 </html>

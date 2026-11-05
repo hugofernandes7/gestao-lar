@@ -111,3 +111,6 @@ legend { font-size: 1.2rem; font-weight: 700; color: var(--azul); padding: 0; ma
 .etiqueta-aviso { background: #ffe9d6; color: #7a2800; border: 1px solid #c23c00; }
 .alerta-info { background: #e3ecf4; border-left: 8px solid var(--azul); color: #0e2b4a; }
 .conteudo section.formulario { margin-bottom: 1rem; }
+
+/* Gráfico do peso (SVG gerado no servidor) */
+.grafico-peso svg { width: 100%; height: auto; max-width: 640px; border: 1px solid #d5d9de; border-radius: 8px; }

@@ -193,10 +193,14 @@ Se usares outra rede, é o IPv4 do adaptador ligado a essa rede.
 - **Ficha** (toca no utente), em **duas colunas** (o ecrã é horizontal; falta altura, não largura):
   - **esquerda (~40 %)**: foto, nome, «como gosta de ser tratado», aviso de ocorrência e bloco «Atenção». Se o
     conteúdo for mais alto que o ecrã, **rola só esta coluna**;
-  - **direita (~60 %)**: separadores, **os 4 botões de ação (sempre visíveis, sem scroll, em qualquer ficha)**,
+  - **direita (~60 %)**: separadores, **os botões de ação numa grelha 3×2 (sempre visíveis, sem scroll, em qualquer ficha)**,
     confirmação, painéis e «Hoje». Os painéis longos (ex.: medicação com 5 linhas) rolam dentro da coluna.
   - **Banho** (1 toque), **Queda** → *Sem lesão / Com lesão* (2 toques), **Dor / mal-estar** → local (2 toques),
     **Medicação** → **Dado** (2 toques, com sessão iniciada).
+  - **Refeição** (Etapa 8, sem PIN): 1.º toque abre o painel já na refeição certa pela hora (a última janela que já começou: pequeno-almoço 07:00, almoço 12:00, lanche 15:30, jantar 18:30, ceia 21:00; antes das 07:00, pequeno-almoço; configurável em `lar.refeicoes.inicio`); 2.º toque = *Tudo / Metade / Pouco / Recusou*. Para registar outra refeição há um toque extra nos chips. Uma refeição por tipo, utente e dia: se já existe, o botão mostra «Almoço: Metade» e um novo registo pede confirmação («Substituir o registo?») e anula o anterior. «Desfazer» como nos outros registos.
+  - **Peso** (Saúde, com PIN): teclado numérico próprio (1 decimal, 20–250 kg), mostra o último peso e a variação; Guardar só fica ativo com um valor válido.
+  - **Alertas** no bloco Atenção (sem selos novos na grelha): «Come pouco há 3 refeições» (últimas 3 refeições registadas *Pouco*/*Recusou*) e «Perda de peso — avisar enfermagem» (> 5 % em 30 dias). Sem diagnósticos nem nomes de medicamentos.
+  - O botão «Humor» (Etapa 10) fica reservado: o 3.º lugar da 1.ª linha está vazio.
   - **Separador Saúde** (3.º separador, **só com sessão de PIN**): mostra as condições ativas do utente e, para cada
     uma, «O que fazer» passo a passo. Cada abertura fica registada (quem, qual utente, quando) e aparece em
     `/admin/acessos`. É só leitura. Sem PIN, o tablet **nunca** mostra nomes de condições nem de medicamentos:
@@ -302,6 +306,9 @@ Se usares outra rede, é o IPv4 do adaptador ligado a essa rede.
 | Ocorrência recente | queda ou dor com menos de 48 h (limite inclusivo) |
 | Anulados | não contam para nenhum indicador |
 | Desfazer no tablet | só nos primeiros 60 s (o botão fica visível 10 s) |
+| Refeição | 1 registo ativo por utente, dia e tipo de refeição (índice único parcial); substituir anula o anterior |
+| Peso | 20–250 kg, 1 casa decimal; alerta se a perda > 5 % nos últimos 30 dias (`lar.peso`) |
+| Exige sessão | `lar.registo.exige-sessao` (ou Definições): ocorrência, toma, **refeição (por defeito não)** e **peso (por defeito sim)**; aplicado em `RegistoService` |
 | Dia | dia civil em `Europe/Lisbon` |
 
 As duas regras de unicidade estão garantidas **na própria base de dados** (índices únicos parciais), por isso
@@ -321,6 +328,7 @@ Capturas: `screenshots/final/` (aspeto geral) e `screenshots/etapa5/` (regenerar
 screenshots/etapa5b/ capturas da ficha em duas colunas (incluindo um pior caso artificial com a coluna esquerda a rolar)
 screenshots/etapa6/  capturas do acesso por número + PIN, da sessão e do admin de funcionárias e acessos
 screenshots/etapa7/  capturas do separador Saúde (pede PIN, protocolos), do admin de protocolos, condições e acessos; `09`–`15` mostram protocolo validado vs por validar
+screenshots/etapa8/  capturas da Etapa 8: grelha 3×2, refeição (quantidade, trocar de refeição, confirmar substituição), alertas, peso com teclado, gráfico no admin, filtro por tipo e Definições
 
 ---
 
@@ -370,8 +378,12 @@ nessa altura; depois funciona offline. Para correr só os testes sem interface: 
 | `AdminSaudeTest` | `/admin/protocolos`, condições do utente, acessos à Saúde; login, CSRF, 404 entre utentes |
 | `SaudeUiTest` | fluxo completo no Chromium: ficha → Saúde → PIN → protocolos → Registos → Saúde → sessão expirada → PIN |
 | `ValidacaoProtocolosTest` | catálogo editável (criar, renomear, desativar, apagar só sem utentes) e validação (só enfermagem, editar tira a validação, tablet esconde texto e aviso, admin, seed de demo) |
+| `RefeicaoServiceTest` | janela da refeição (06:00, 11:00, 15:00, 23:45, fronteiras), uma por tipo e dia, substituir, «come pouco há 3 refeições» |
+| `PesoServiceTest` | validação, sessão, variação, alerta (> 5 % em 30 dias, fronteiras), gráfico SVG válido e sem recursos externos |
+| `RefeicaoPesoMvcTest` | rotas, confirmação de substituição, exigência de sessão por tipo, Hoje e filtro por tipo no admin |
+| `RefeicaoPesoUiTest` | **grelha 3×2 visível sem scroll nas 15 fichas, botões ≥ 2 cm, contagem de toques por fluxo (refeição 2, trocar 3, substituir 3, peso 2)**, teclado do peso, alertas, desfazer |
 
-Total: **351 testes** (mais 5, `CapturasEsteticasTest`, que só correm com `-Dcapturas=true`). Os de interface demoram
+Total: **420 testes** (mais 6, `CapturasEsteticasTest`, que só correm com `-Dcapturas=true`). Os de interface demoram
 cerca de 3 minutos porque esperam temporizadores reais de 10 s e 60 s.
 O `axe.min.js` está em `src/test/resources/axe/` e só é usado nos testes (a aplicação não tem dependências externas).
 
@@ -387,13 +399,14 @@ src/main/java/pt/lar/
   repositories/  Spring Data JPA
   services/      Regras, RegistoService, GrelhaService, FichaService, PlanoService, …
 src/main/resources/
-  db/migration/  V1__schema.sql, V2__fotos_e_historico_de_notas.sql, V3__perfil_de_atencao.sql, V4__funcionarios_e_acesso_por_pin.sql, V5__definicoes.sql, V6__banho_nunca_exige_sessao.sql, V7__condicoes_e_saude.sql, V8__catalogo_editavel_e_validacao_de_protocolos.sql (Flyway)
+  db/migration/  V1__schema.sql, V2__fotos_e_historico_de_notas.sql, V3__perfil_de_atencao.sql, V4__funcionarios_e_acesso_por_pin.sql, V5__definicoes.sql, V6__banho_nunca_exige_sessao.sql, V7__condicoes_e_saude.sql, V8__catalogo_editavel_e_validacao_de_protocolos.sql, V9__refeicoes_e_peso.sql (Flyway)
   templates/     tablet/*, admin/*  (Thymeleaf)
   static/        css/, fonts/ (Atkinson Hyperlegible), js/htmx.min.js (local), manifest.json, icons/
 screenshots/final/   capturas 1280×800 do aspeto final (grelha, ficha, admin)
 screenshots/etapa5/  capturas da Etapa 5: «Atenção», alergias, «Sobre mim» e formulário do perfil
 ```
 (Etapa 7: `SaudeService`, `AdminSaudeController`, entidades `CondicaoProtocolo`, `UtenteCondicao`, `AcessoSaude`.)
+(Etapa 8: `RefeicaoService`, `PesoService`, `PesoGraficoSvg`, `AdminPesoController`, entidade `Peso`, `static/js/teclado-num.js`.)
 
 ## 8. Fora de âmbito (de propósito)
 

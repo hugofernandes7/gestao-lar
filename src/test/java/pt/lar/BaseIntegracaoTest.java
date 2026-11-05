@@ -94,6 +94,7 @@ public abstract class BaseIntegracaoTest {
     @Autowired protected DefinicoesService definicoesService;
     @Autowired protected pt.lar.repositories.UtenteCondicaoRepository utenteCondicoes;
     @Autowired protected pt.lar.repositories.AcessoSaudeRepository acessosSaude;
+    @Autowired protected pt.lar.repositories.PesoRepository pesosRepo;
     @Autowired protected pt.lar.services.SaudeService saudeService;
     @Autowired protected org.springframework.jdbc.core.JdbcTemplate jdbc;
 
@@ -104,6 +105,7 @@ public abstract class BaseIntegracaoTest {
     void limparEFixarRelogio() {
         acessosSaude.deleteAllInBatch();
         utenteCondicoes.deleteAllInBatch();
+        pesosRepo.deleteAllInBatch();
         reporCatalogoDeCondicoes();
         registos.deleteAllInBatch();
         tentativas.deleteAllInBatch();

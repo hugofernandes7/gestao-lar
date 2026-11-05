@@ -1,7 +1,17 @@
 package pt.lar.models;
 
 public enum TipoRegisto {
-    BANHO, QUEDA, DOR, TOMA;
+    BANHO("Banho"), QUEDA("Queda"), DOR("Dor / mal-estar"), TOMA("Medicação"), REFEICAO("Refeição"), PESO("Peso");
+
+    private final String etiqueta;
+
+    TipoRegisto(String etiqueta) {
+        this.etiqueta = etiqueta;
+    }
+
+    public String getEtiqueta() {
+        return etiqueta;
+    }
 
     /** Queda e dor contam como "ocorrência". */
     public boolean isOcorrencia() {
