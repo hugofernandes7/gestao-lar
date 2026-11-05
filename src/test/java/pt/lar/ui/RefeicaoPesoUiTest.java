@@ -202,6 +202,41 @@ class RefeicaoPesoUiTest extends BaseVisualTest {
         assertThat(pagina.locator(".botoes")).not().containsText("Lanche:");
     }
 
+    @Test
+    void desfazerUmaSubstituicaoNoTabletRepoeOValorAnterior() {
+        registoService.refeicao(quarto1.getId(), Refeicao.LANCHE, QuantidadeRefeicao.METADE, false, null);
+        abrirFicha(quarto1);
+        tocar(botao("Lanche: Metade"));
+        pagina.waitForSelector(".painel-refeicao");
+        tocar(comTexto(".painel-refeicao .btn-prato", "Pouco"));
+        tocar(botao("Substituir"));
+        assertThat(pagina.locator(".botoes")).containsText("Lanche: Pouco");
+
+        tocar(pagina.locator(".btn-desfazer"));
+
+        assertThat(pagina.locator(".mensagem")).containsText("Registo desfeito");
+        assertThat(pagina.locator(".botoes")).containsText("Lanche: Metade");     // volta o valor anterior
+        assertThat(ativas(TipoRegisto.REFEICAO)).isEqualTo(1);
+    }
+
+    @Test
+    void noAdminAnularQuemSubstituiPerguntaSeReativaOAnterior() {
+        registoService.refeicao(quarto1.getId(), Refeicao.LANCHE, QuantidadeRefeicao.METADE, false, null);
+        registoService.refeicao(quarto1.getId(), Refeicao.LANCHE, QuantidadeRefeicao.POUCO, true, null);
+        entrarNoAdmin();
+        pagina.navigate(url("/admin/historico?dia=2026-11-03&utente=" + quarto1.getId()));
+        java.util.List<String> perguntas = new java.util.ArrayList<>();
+        pagina.onDialog(d -> { perguntas.add(d.message()); d.accept(); });      // aceita as duas perguntas
+
+        pagina.locator("tr:has-text('Lanche: Pouco') button:has-text('Anular')").click();
+        pagina.waitForSelector(".alerta-sucesso, .sucesso, [role=status]");
+
+        assertThat(perguntas).hasSize(2);
+        assertThat(perguntas.get(1)).contains("Reativar o registo anterior");
+        assertThat(ativas(TipoRegisto.REFEICAO)).isEqualTo(1);
+        assertThat(refeicoes().stream().filter(r -> !r.isAnulado()).findFirst().orElseThrow().getDetalhe()).isEqualTo("METADE");
+    }
+
     // ---- Alertas no bloco Atenção --------------------------------------------------------------------------------
 
     @Test

@@ -169,7 +169,9 @@ public class RegistoService {
                 Registo anterior = registos.findById(anteriorId).orElseThrow();
                 if (!anterior.isAnulado()) anterior.anular(agora, null);
                 registos.saveAndFlush(anterior);               // o UPDATE tem de sair antes do INSERT (índice único)
-                return registos.saveAndFlush(novaRefeicao(u, refeicao, quantidade, agora, dia, por));
+                Registo n = novaRefeicao(u, refeicao, quantidade, agora, dia, por);
+                n.setSubstituiId(anteriorId);
+                return registos.saveAndFlush(n);
             });
             return new ResultadoRefeicao(nova, EstadoRefeicao.SUBSTITUIDA, existente.get());
         } catch (DataIntegrityViolationException e) {         // outro tablet foi mais rápido
@@ -216,15 +218,34 @@ public class RegistoService {
         }
         if (r.getDataHora().isBefore(agora.minus(JANELA_DESFAZER))) return ResultadoDesfazer.FORA_DE_PRAZO;
         r.anular(agora, null);
+        reativarSeSubstituiu(r);
         return ResultadoDesfazer.DESFEITO;
     }
 
-    /** Anulação no /admin: sem limite de tempo, regista quem anulou e quando. */
+    /** Anulação no /admin: sem limite de tempo, regista quem anulou e quando. Não mexe no registo que este substituiu. */
     @Transactional
     public void anularNoAdmin(Long registoId, UtilizadorGestao por) {
+        anularNoAdmin(registoId, por, false);
+    }
+
+    /** Como acima; com {@code reativarAnterior}, se este registo substituiu outro, o anterior volta a estar ativo (mesma transação). */
+    @Transactional
+    public void anularNoAdmin(Long registoId, UtilizadorGestao por, boolean reativarAnterior) {
         Registo r = registos.findById(registoId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         if (!r.isAnulado()) r.anular(clock.instant(), por);
+        if (reativarAnterior && r.isAnulado()) reativarSeSubstituiu(r);
+    }
+
+    /** Anula-se o novo e reativa-se o anterior na mesma transação; o UPDATE do novo sai primeiro (índice único parcial). */
+    private void reativarSeSubstituiu(Registo r) {
+        if (r.getSubstituiId() == null) return;
+        registos.saveAndFlush(r);
+        Registo anterior = registos.findById(r.getSubstituiId()).orElse(null);
+        if (anterior == null || !anterior.isAnulado()) return;
+        boolean haOutroAtivo = registos.findFirstByUtenteIdAndTipoAndRefeicaoAndDiaAndAnuladoFalse(
+                anterior.getUtente().getId(), TipoRegisto.REFEICAO, anterior.getRefeicao(), anterior.getDia()).isPresent();
+        if (!haOutroAtivo) anterior.reativar();
     }
 
     @Transactional

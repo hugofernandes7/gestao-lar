@@ -60,10 +60,17 @@
                 </span>
             </td>
             <td class="acoes">
-                <form th:unless="${l.anulado()}" th:action="@{/admin/registos/{id}/anular(id=${l.id()})}" method="post" class="em-linha"
+                <form th:if="${!l.anulado() and !l.substituiuOutro()}" th:action="@{/admin/registos/{id}/anular(id=${l.id()})}" method="post" class="em-linha"
                       onsubmit="return confirm('Anular este registo?');">
                     <input type="hidden" name="dia" th:value="${dia}">
                     <input type="hidden" name="utente" th:value="${utenteSel}" th:if="${utenteSel != null}">
+                    <button type="submit" class="botao botao-claro">Anular</button>
+                </form>
+                <form th:if="${!l.anulado() and l.substituiuOutro()}" th:action="@{/admin/registos/{id}/anular(id=${l.id()})}" method="post" class="em-linha"
+                      onsubmit="if (!confirm('Anular este registo?')) return false; this.reativar.value = confirm('Este registo substituiu outro. Reativar o registo anterior?') ? 'true' : 'false'; return true;">
+                    <input type="hidden" name="dia" th:value="${dia}">
+                    <input type="hidden" name="utente" th:value="${utenteSel}" th:if="${utenteSel != null}">
+                    <input type="hidden" name="reativar" value="false">
                     <button type="submit" class="botao botao-claro">Anular</button>
                 </form>
             </td>

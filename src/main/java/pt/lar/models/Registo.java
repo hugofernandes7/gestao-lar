@@ -30,6 +30,9 @@ public class Registo {
     private Instant dataHora;
     @Column(nullable = false)
     private LocalDate dia;
+    /** REFEICAO: o registo (já anulado) que este substituiu; desfazer este repõe aquele. */
+    @Column(name = "substitui_id")
+    private Long substituiId;
     @Column(nullable = false)
     private boolean anulado;
     @Column(name = "anulado_em")
@@ -62,6 +65,15 @@ public class Registo {
         this.anuladoPor = por;
     }
 
+    /** Repõe um registo anulado (ao desfazer a substituição que o anulou). */
+    public void reativar() {
+        this.anulado = false;
+        this.anuladoEm = null;
+        this.anuladoPor = null;
+    }
+
+    public Long getSubstituiId() { return substituiId; }
+    public void setSubstituiId(Long id) { this.substituiId = id; }
     public Refeicao getRefeicao() { return refeicao; }
     public void setRefeicao(Refeicao refeicao) { this.refeicao = refeicao; }
     public Long getId() { return id; }

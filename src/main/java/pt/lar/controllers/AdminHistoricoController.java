@@ -54,9 +54,10 @@ public class AdminHistoricoController {
     @PostMapping("/admin/registos/{id}/anular")
     String anular(@PathVariable Long id, @RequestParam(required = false) Long utente,
                   @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dia,
-                  Principal quem, RedirectAttributes ra) {
-        registos.anularNoAdmin(id, utilizadores.findByUsername(quem.getName()).orElse(null));
-        ra.addFlashAttribute("sucesso", "Registo anulado.");
+                  Principal quem, RedirectAttributes ra,
+                  @RequestParam(defaultValue = "false") boolean reativar) {
+        registos.anularNoAdmin(id, utilizadores.findByUsername(quem.getName()).orElse(null), reativar);
+        ra.addFlashAttribute("sucesso", reativar ? "Registo anulado. O registo anterior foi reativado." : "Registo anulado.");
         return "redirect:/admin/historico?dia=" + dia + (utente != null ? "&utente=" + utente : "");
     }
 }

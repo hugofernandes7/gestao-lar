@@ -21,7 +21,8 @@ public class HistoricoService {
 
     /** Linha do histórico. {@code quem} = funcionária com sessão de PIN ao registar (null = sem sessão). {@code anuladoPor} é "Tablet (sem identificação)" quando anulado no tablet. */
     public record Linha(Long id, String hora, String utente, String tipo, String descricao, String quem, String nota,
-                        boolean anulado, String anuladoPor, String anuladoEm, List<VersaoNota> versoesNota) {}
+                        boolean anulado, String anuladoPor, String anuladoEm, List<VersaoNota> versoesNota,
+                        boolean substituiuOutro) {}
 
     private final RegistoRepository registos;
     private final RegistoNotaHistoricoRepository notas;
@@ -76,6 +77,7 @@ public class HistoricoService {
         String por = !r.isAnulado() ? null
                 : r.getAnuladoPor() != null ? r.getAnuladoPor().getNome() : "Tablet (sem identificação)";
         return new Linha(r.getId(), fmt.hora(r.getDataHora()), r.getUtente().getNome(), tipo, descricao,
-                r.getRealizadoPor() == null ? null : r.getRealizadoPor().etiqueta(), r.getNota(), r.isAnulado(), por, fmt.dataHora(r.getAnuladoEm()), versoesNota);
+                r.getRealizadoPor() == null ? null : r.getRealizadoPor().etiqueta(), r.getNota(), r.isAnulado(), por, fmt.dataHora(r.getAnuladoEm()), versoesNota,
+                r.getSubstituiId() != null);
     }
 }

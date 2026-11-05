@@ -117,6 +117,81 @@ class RefeicaoServiceTest extends BaseIntegracaoTest {
         assertThat(refeicoes.deHoje(maria.getId(), Refeicao.ALMOCO).orElseThrow().getId()).isEqualTo(r.registo().getId());
     }
 
+    // ---- Desfazer uma substituição repõe a anterior ---------------------------------------------------------
+
+    @Test
+    void desfazerUmaSubstituicaoReativaAAnteriorEOBotaoMostraOValorAnterior() {
+        var primeira = registoService.refeicao(maria.getId(), Refeicao.ALMOCO, QuantidadeRefeicao.METADE, false, null).registo();
+        var nova = registoService.refeicao(maria.getId(), Refeicao.ALMOCO, QuantidadeRefeicao.POUCO, true, null).registo();
+        assertThat(registos.findById(nova.getId()).orElseThrow().getSubstituiId()).isEqualTo(primeira.getId());
+
+        assertThat(registoService.desfazerNoTablet(nova.getId(), null)).isEqualTo(RegistoService.ResultadoDesfazer.DESFEITO);
+
+        var p = registos.findById(primeira.getId()).orElseThrow();
+        assertThat(p.isAnulado()).as("a anterior volta a estar ativa").isFalse();
+        assertThat(p.getAnuladoEm()).isNull();
+        assertThat(registos.findById(nova.getId()).orElseThrow().isAnulado()).isTrue();
+        assertThat(ativas()).isEqualTo(1);                                  // o índice único continua respeitado
+        assertThat(RefeicaoService.texto(refeicoes.deHoje(maria.getId(), Refeicao.ALMOCO).orElseThrow())).isEqualTo("Almoço: Metade");
+        relogio.definir("2026-11-03T13:00:00");                           // janela do almoço: é essa que o botão mostra
+        var ficha = fichaService.montar(maria.getId(), FichaService.Painel.NENHUM, null, null);
+        assertThat(ficha.textoRefeicao()).isEqualTo("Almoço: Metade");
+    }
+
+    @Test
+    void desfazerUmaRefeicaoQueNaoSubstituiNadaContinuaIgual() {
+        var r = registoService.refeicao(maria.getId(), Refeicao.ALMOCO, QuantidadeRefeicao.TUDO, false, null).registo();
+        registoService.desfazerNoTablet(r.getId(), null);
+        assertThat(ativas()).isZero();
+    }
+
+    @Test
+    void cadeiaDeSubstituicoesDesfazOPassoDeCada() {
+        registoService.refeicao(maria.getId(), Refeicao.JANTAR, QuantidadeRefeicao.TUDO, false, null);
+        var b = registoService.refeicao(maria.getId(), Refeicao.JANTAR, QuantidadeRefeicao.METADE, true, null).registo();
+        var c = registoService.refeicao(maria.getId(), Refeicao.JANTAR, QuantidadeRefeicao.POUCO, true, null).registo();
+
+        registoService.desfazerNoTablet(c.getId(), null);
+        assertThat(refeicoes.deHoje(maria.getId(), Refeicao.JANTAR).orElseThrow().getId()).isEqualTo(b.getId());
+        assertThat(ativas()).isEqualTo(1);
+    }
+
+    @Test
+    void naoReativaSeEntretantoHaOutraAtiva() {
+        var a = registoService.refeicao(maria.getId(), Refeicao.ALMOCO, QuantidadeRefeicao.METADE, false, null).registo();
+        var b = registoService.refeicao(maria.getId(), Refeicao.ALMOCO, QuantidadeRefeicao.POUCO, true, null).registo();
+        registoService.anularNoAdmin(b.getId(), null);                  // sem reativar: fica sem refeição ativa
+        var c = registoService.refeicao(maria.getId(), Refeicao.ALMOCO, QuantidadeRefeicao.TUDO, false, null).registo();
+
+        registoService.anularNoAdmin(b.getId(), null, true);            // b já anulado; reativar não pode violar o índice
+        assertThat(ativas()).isEqualTo(1);
+        assertThat(registos.findById(a.getId()).orElseThrow().isAnulado()).isTrue();
+        assertThat(registos.findById(c.getId()).orElseThrow().isAnulado()).isFalse();
+    }
+
+    @Test
+    void anularNoAdminSemReativarMantemAAnteriorAnulada() {
+        var a = registoService.refeicao(maria.getId(), Refeicao.ALMOCO, QuantidadeRefeicao.METADE, false, null).registo();
+        var b = registoService.refeicao(maria.getId(), Refeicao.ALMOCO, QuantidadeRefeicao.POUCO, true, null).registo();
+
+        registoService.anularNoAdmin(b.getId(), null, false);
+
+        assertThat(registos.findById(a.getId()).orElseThrow().isAnulado()).isTrue();
+        assertThat(ativas()).isZero();
+    }
+
+    @Test
+    void anularNoAdminComReativarRepoeAAnterior() {
+        var a = registoService.refeicao(maria.getId(), Refeicao.ALMOCO, QuantidadeRefeicao.METADE, false, null).registo();
+        var b = registoService.refeicao(maria.getId(), Refeicao.ALMOCO, QuantidadeRefeicao.POUCO, true, null).registo();
+
+        registoService.anularNoAdmin(b.getId(), null, true);
+
+        assertThat(registos.findById(a.getId()).orElseThrow().isAnulado()).isFalse();
+        assertThat(registos.findById(b.getId()).orElseThrow().isAnulado()).isTrue();
+        assertThat(ativas()).isEqualTo(1);
+    }
+
     @Test
     void substituirSemHaverAnteriorRegistaNormalmente() {
         var r = registoService.refeicao(maria.getId(), Refeicao.CEIA, QuantidadeRefeicao.TUDO, true, null);

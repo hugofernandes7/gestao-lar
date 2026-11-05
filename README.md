@@ -197,7 +197,7 @@ Se usares outra rede, é o IPv4 do adaptador ligado a essa rede.
     confirmação, painéis e «Hoje». Os painéis longos (ex.: medicação com 5 linhas) rolam dentro da coluna.
   - **Banho** (1 toque), **Queda** → *Sem lesão / Com lesão* (2 toques), **Dor / mal-estar** → local (2 toques),
     **Medicação** → **Dado** (2 toques, com sessão iniciada).
-  - **Refeição** (Etapa 8, sem PIN): 1.º toque abre o painel já na refeição certa pela hora (a última janela que já começou: pequeno-almoço 07:00, almoço 12:00, lanche 15:30, jantar 18:30, ceia 21:00; antes das 07:00, pequeno-almoço; configurável em `lar.refeicoes.inicio`); 2.º toque = *Tudo / Metade / Pouco / Recusou*. Para registar outra refeição há um toque extra nos chips. Uma refeição por tipo, utente e dia: se já existe, o botão mostra «Almoço: Metade» e um novo registo pede confirmação («Substituir o registo?») e anula o anterior. «Desfazer» como nos outros registos.
+  - **Refeição** (Etapa 8, sem PIN): 1.º toque abre o painel já na refeição certa pela hora (a última janela que já começou: pequeno-almoço 07:00, almoço 12:00, lanche 15:30, jantar 18:30, ceia 21:00; antes das 07:00, pequeno-almoço; configurável em `lar.refeicoes.inicio`); 2.º toque = *Tudo / Metade / Pouco / Recusou*. Para registar outra refeição há um toque extra nos chips. Uma refeição por tipo, utente e dia: se já existe, o botão mostra «Almoço: Metade» e um novo registo pede confirmação («Substituir o registo?») e anula o anterior. «Desfazer» como nos outros registos; se o registo substituiu outro, desfazer repõe o anterior (V10, mesma transação). No admin, anular esse registo pergunta se o anterior deve ser reativado.
   - **Peso** (Saúde, com PIN): teclado numérico próprio (1 decimal, 20–250 kg), mostra o último peso e a variação; Guardar só fica ativo com um valor válido.
   - **Alertas** no bloco Atenção (sem selos novos na grelha): «Come pouco há 3 refeições» (últimas 3 refeições registadas *Pouco*/*Recusou*) e «Perda de peso — avisar enfermagem» (> 5 % em 30 dias). Sem diagnósticos nem nomes de medicamentos.
   - O botão «Humor» (Etapa 10) fica reservado: o 3.º lugar da 1.ª linha está vazio.
@@ -399,7 +399,7 @@ src/main/java/pt/lar/
   repositories/  Spring Data JPA
   services/      Regras, RegistoService, GrelhaService, FichaService, PlanoService, …
 src/main/resources/
-  db/migration/  V1__schema.sql, V2__fotos_e_historico_de_notas.sql, V3__perfil_de_atencao.sql, V4__funcionarios_e_acesso_por_pin.sql, V5__definicoes.sql, V6__banho_nunca_exige_sessao.sql, V7__condicoes_e_saude.sql, V8__catalogo_editavel_e_validacao_de_protocolos.sql, V9__refeicoes_e_peso.sql (Flyway)
+  db/migration/  V1__schema.sql, V2__fotos_e_historico_de_notas.sql, V3__perfil_de_atencao.sql, V4__funcionarios_e_acesso_por_pin.sql, V5__definicoes.sql, V6__banho_nunca_exige_sessao.sql, V7__condicoes_e_saude.sql, V8__catalogo_editavel_e_validacao_de_protocolos.sql, V9__refeicoes_e_peso.sql, V10__substituicao_de_refeicao.sql (Flyway)
   templates/     tablet/*, admin/*  (Thymeleaf)
   static/        css/, fonts/ (Atkinson Hyperlegible), js/htmx.min.js (local), manifest.json, icons/
 screenshots/final/   capturas 1280×800 do aspeto final (grelha, ficha, admin)

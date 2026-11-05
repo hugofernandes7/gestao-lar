@@ -318,4 +318,31 @@ class RefeicaoPesoMvcTest extends BaseIntegracaoTest {
         String html = corpo(get("/admin/definicoes").with(user("enfermeira").roles("ENFERMEIRO")));
         assertThat(html).contains("name=\"refeicao\"").contains("name=\"peso\"");
     }
+
+    @Test
+    void asDefinicoesAvisamQuePesoESinaisVitaisNaoTemEfeito() throws Exception {
+        utilizadores.save(new UtilizadorGestao("Enfermeira Ana", "enfermeira", "x", Perfil.ENFERMEIRO));
+        String html = corpo(get("/admin/definicoes").with(user("enfermeira").roles("ENFERMEIRO")));
+        assertThat(html).contains("Sem efeito: a aba Saúde exige sempre PIN.");
+    }
+
+    @Test
+    void anularNoAdminUmaSubstituicaoPodeReativarOAnterior() throws Exception {
+        utilizadores.save(new UtilizadorGestao("Enfermeira Ana", "enfermeira", "x", Perfil.ENFERMEIRO));
+        var admin = user("enfermeira").roles("ENFERMEIRO");
+        var a = registoService.refeicao(maria.getId(), Refeicao.ALMOCO, QuantidadeRefeicao.METADE, false, null).registo();
+        var b = registoService.refeicao(maria.getId(), Refeicao.ALMOCO, QuantidadeRefeicao.POUCO, true, null).registo();
+
+        // a linha da nova pergunta se o anterior deve ser reativado; a da anterior (anulada) não tem botão
+        String html = corpo(get("/admin/historico").param("dia", "2026-11-03").with(admin));
+        assertThat(html).contains("name=\"reativar\"").contains("Reativar o registo anterior?");
+
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/admin/registos/" + b.getId() + "/anular")
+                        .param("dia", "2026-11-03").param("reativar", "true").with(admin)
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().is3xxRedirection());
+
+        assertThat(registos.findById(a.getId()).orElseThrow().isAnulado()).isFalse();
+        assertThat(registos.findById(b.getId()).orElseThrow().isAnulado()).isTrue();
+    }
 }
