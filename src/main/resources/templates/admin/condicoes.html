@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="pt-PT" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{admin/layout :: head('Condições de saúde')}"></head>
+<body>
+<header th:replace="~{admin/layout :: topo(${menu})}"></header>
+<main class="conteudo estreito">
+    <div th:replace="~{admin/layout :: mensagens}"></div>
+    <p class="migalhas"><a href="/admin/utentes">Utentes</a> › <span th:text="${utente.nome}">Nome</span></p>
+    <h1>Condições de saúde <small th:text="${'Quarto ' + utente.quarto}">Quarto 1</small></h1>
+    <p class="suave">No tablet, o nome da condição só aparece no separador Saúde (com PIN). Sem PIN aparece apenas o
+        aviso de atuação do protocolo, sem o nome. Cada abertura da Saúde fica registada em <a href="/admin/acessos">Acessos</a>.</p>
+
+    <p class="suave" th:if="${linhas.isEmpty()}">Este utente não tem condições registadas.</p>
+
+    <section class="formulario" th:each="l : ${linhas}" th:classappend="${!l.ativa()} ? 'inativo'">
+        <h2><span th:text="${l.nome()}">Diabetes</span>
+            <span class="etiqueta" th:classappend="${l.ativa()} ? 'etiqueta-ok' : 'etiqueta-off'" th:text="${l.ativa()} ? 'Ativa' : 'Desativada'">Ativa</span></h2>
+        <form method="post" th:action="@{/admin/utentes/{id}/condicoes/{c}(id=${utente.id},c=${l.id()})}">
+            <div class="linha-campos">
+                <label class="larga">Detalhe
+                    <input type="text" name="detalhe" th:value="${l.detalhe()}" maxlength="200" placeholder="ex.: tipo 2, desde 2015">
+                </label>
+                <label>Desde
+                    <input type="date" name="desde" th:value="${l.desde()}">
+                </label>
+            </div>
+            <label>Notas <span class="suave pequeno">(aparecem na Saúde, com PIN)</span>
+                <textarea name="notas" rows="3" maxlength="2000" th:text="${l.notas()}"></textarea>
+            </label>
+            <p class="suave pequeno" th:text="${l.ultima()}">Atualizada em…</p>
+            <div class="barra">
+                <button type="submit" class="botao">Guardar</button>
+            </div>
+        </form>
+        <form method="post" th:action="@{/admin/utentes/{id}/condicoes/{c}/ativa(id=${utente.id},c=${l.id()})}" class="em-linha">
+            <input type="hidden" name="ativa" th:value="${!l.ativa()}">
+            <button type="submit" class="botao botao-claro" th:text="${l.ativa()} ? 'Desativar' : 'Reativar'">Desativar</button>
+        </form>
+    </section>
+
+    <h2>Adicionar condição</h2>
+    <form class="formulario" method="post" th:action="@{/admin/utentes/{id}/condicoes(id=${utente.id})}">
+        <label>Condição
+            <select name="condicao" required>
+                <option value="">— escolher —</option>
+                <option th:each="c : ${catalogo}" th:value="${c.codigo}" th:text="${c.nome}">Diabetes</option>
+            </select>
+        </label>
+        <div class="linha-campos">
+            <label class="larga">Detalhe <span class="suave pequeno">(obrigatório em «Outra condição»)</span>
+                <input type="text" name="detalhe" maxlength="200">
+            </label>
+            <label>Desde
+                <input type="date" name="desde">
+            </label>
+        </div>
+        <label>Notas
+            <textarea name="notas" rows="3" maxlength="2000"></textarea>
+        </label>
+        <div class="barra"><button type="submit" class="botao">Adicionar</button></div>
+    </form>
+</main>
+</body>
+</html>

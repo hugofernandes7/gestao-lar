@@ -23,6 +23,7 @@ import pt.lar.services.Formatos;
 import pt.lar.services.GrelhaService;
 import pt.lar.services.RegistoService;
 import pt.lar.services.RegistoService.Resultado;
+import pt.lar.services.SaudeService;
 import pt.lar.services.SessaoNecessariaException;
 import pt.lar.services.SessaoService;
 
@@ -41,9 +42,11 @@ public class TabletController {
     private final RegistoService registos;
     private final Formatos fmt;
     private final DefinicoesService definicoes;
+    private final SaudeService saude;
 
     public TabletController(GrelhaService grelha, FichaService ficha, RegistoService registos, Formatos fmt,
-                            DefinicoesService definicoes) {
+                            DefinicoesService definicoes, SaudeService saude) {
+        this.saude = saude;
         this.definicoes = definicoes;
         this.grelha = grelha;
         this.ficha = ficha;
@@ -81,8 +84,13 @@ public class TabletController {
                  @RequestAttribute(name = FUNCIONARIA, required = false) Funcionario por,
                  Model model) {
         Painel p = Painel.de(painel);
+        FichaService.Aba a = FichaService.Aba.de(aba);
         if (por == null && exigeSessaoParaPainel(p)) return pedirAcesso(id, htmx != null, p);
-        model.addAttribute("f", ficha.montar(id, p, null, null, FichaService.Aba.de(aba), por != null));
+        if (a == FichaService.Aba.SAUDE) {
+            if (por == null) return pedirAcessoPara(id, htmx != null, "saude");   // a Saúde exige sempre sessão
+            saude.registarAcesso(id, por);                                         // cada abertura fica registada
+        }
+        model.addAttribute("f", ficha.montar(id, p, null, null, a, por != null));
         return htmx != null ? "tablet/ficha :: conteudo" : "tablet/ficha";
     }
 
@@ -192,8 +200,12 @@ public class TabletController {
      * htmx: cabeçalho HX-Redirect; senão, 302.
      */
     private ResponseEntity<Void> pedirAcesso(Long utenteId, boolean htmx, Painel painel) {
-        String destino = "/tablet/acesso?utente=" + utenteId
-                + (painel != null && painel != Painel.NENHUM ? "&painel=" + painel.name().toLowerCase() : "");
+        return pedirAcessoPara(utenteId, htmx, painel != null && painel != Painel.NENHUM ? painel.name().toLowerCase() : null);
+    }
+
+    /** {@code painel}: o que reabrir depois do PIN (medicacao, queda, dor, saude) ou null para a ficha. */
+    private ResponseEntity<Void> pedirAcessoPara(Long utenteId, boolean htmx, String painel) {
+        String destino = "/tablet/acesso?utente=" + utenteId + (painel != null ? "&painel=" + painel : "");
         return htmx
                 ? ResponseEntity.ok().header("HX-Redirect", destino).build()
                 : ResponseEntity.status(302).header(HttpHeaders.LOCATION, destino).build();

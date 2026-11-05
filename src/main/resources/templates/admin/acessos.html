@@ -37,6 +37,20 @@
         </tbody>
     </table>
     <p class="suave pequeno" th:if="${falhas.size() >= limite}" th:text="${'Mostram-se as ' + limite + ' mais recentes.'}"></p>
+
+    <h2>Acessos ao separador Saúde</h2>
+    <p class="suave">Cada vez que uma funcionária abre a Saúde de um utente no tablet (com PIN) fica aqui registado.</p>
+    <p class="suave" th:if="${acessosSaude.isEmpty()}">Ainda ninguém abriu o separador Saúde.</p>
+    <table class="tabela tabela-compacta" th:unless="${acessosSaude.isEmpty()}">
+        <thead><tr><th>Data e hora</th><th>Funcionária</th><th>Utente</th></tr></thead>
+        <tbody>
+        <tr th:each="a : ${acessosSaude}">
+            <td th:text="${a.quando()}">03/11/2026 10:00</td>
+            <td th:text="${a.funcionaria()}">Ana Ferreira (nº 1)</td>
+            <td th:text="${a.utente() + ' (quarto ' + a.quarto() + ')'}">Maria (quarto 1)</td>
+        </tr>
+        </tbody>
+    </table>
 </main>
 </body>
 </html>

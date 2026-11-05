@@ -301,3 +301,22 @@ textarea::placeholder { color: var(--cinza); opacity: 1; }
 .tecla[disabled] { opacity: .45; cursor: default; }
 .acesso-ola h1 { font-size: 3rem; color: var(--azul-escuro); margin-bottom: 1.2rem; }
 .btn-continuar { min-height: 4.5rem; padding: 0 2.5rem; font-size: 1.4rem; }
+
+/* ---------- Separador "Saúde" (só com PIN): condições e "O que fazer" ---------- */
+.saude { display: flex; flex-direction: column; gap: .9rem; }
+.saude-cartao { display: flex; flex-direction: column; gap: .5rem; padding: 1rem 1.1rem; background: #fff; border-radius: var(--raio); box-shadow: var(--sombra); border-left: 8px solid var(--azul); }
+.saude-cartao h2 { font-size: 1.5rem; color: var(--azul); }
+.saude-cartao h3 { font-size: 1.1rem; color: var(--cinza); text-transform: uppercase; letter-spacing: .04em; }
+.saude-detalhe { display: flex; flex-wrap: wrap; gap: .3rem 1rem; font-size: 1.25rem; }
+.saude-passos { margin: 0; padding-left: 1.6rem; display: flex; flex-direction: column; gap: .45rem; font-size: 1.3rem; line-height: 1.35; }
+.saude-notas { font-size: 1.2rem; padding-top: .4rem; border-top: 1px solid var(--azul-claro); }
+.atencao-acao { margin-top: .5rem; }
+
+/* ---------- Linha de cima da coluna direita com três separadores (Registos, Sobre mim, Saúde) + sessão + Voltar ---------- */
+.dir-topo { gap: .4rem; }
+.abas { gap: .4rem; }
+.aba { padding: 0 .75rem; }
+.col-dir .btn-voltar { margin-right: 0; padding-inline: .8rem; }
+.col-dir .btn-sair { padding-inline: .7rem; }
+.col-dir .sessao { margin-right: 0; gap: .35rem; }
+.col-dir .sessao .sessao-nome { max-width: 6rem; }

@@ -68,9 +68,11 @@ public class AcessoController {
         return "redirect:" + destino(utente, null);
     }
 
-    /** Só volta a sítios conhecidos (grelha, ficha de um utente ativo, ou um painel dele (medicação, queda, dor)). */
+    /** Só volta a sítios conhecidos (grelha, ficha de um utente ativo, ou um painel dele (medicação, queda, dor) ou o separador Saúde). */
     private String destino(Long utenteId, String painel) {
         if (utenteId == null || utentes.findById(utenteId).filter(u -> u.isAtivo()).isEmpty()) return "/tablet";
-        return "/tablet/utentes/" + utenteId + (painel != null && java.util.Set.of("medicacao", "queda", "dor").contains(painel) ? "?painel=" + painel : "");
+        String base = "/tablet/utentes/" + utenteId;
+        if ("saude".equals(painel)) return base + "?aba=saude";
+        return base + (painel != null && java.util.Set.of("medicacao", "queda", "dor").contains(painel) ? "?painel=" + painel : "");
     }
 }

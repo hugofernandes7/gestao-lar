@@ -51,8 +51,8 @@
                                 th:selected="${t == form.textura}">Normal</option>
                     </select>
                 </label>
-                <label class="larga">Dieta <span class="suave pequeno">(texto curto)</span>
-                    <input type="text" name="dieta" th:value="${form.dieta}" maxlength="120" placeholder="ex.: sem sal, diabética">
+                <label class="larga">Dieta <span class="suave pequeno">(texto curto; escreva a dieta, não a doença: aparece no tablet sem PIN)</span>
+                    <input type="text" name="dieta" th:value="${form.dieta}" maxlength="120" placeholder="ex.: sem sal, sem açúcar">
                 </label>
             </div>
             <label class="checkbox"><input type="checkbox" name="ajudaAComer" value="true" th:checked="${form.ajudaAComer}"> Precisa de ajuda a comer</label>

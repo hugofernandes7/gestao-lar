@@ -197,6 +197,11 @@ Se usares outra rede, é o IPv4 do adaptador ligado a essa rede.
     confirmação, painéis e «Hoje». Os painéis longos (ex.: medicação com 5 linhas) rolam dentro da coluna.
   - **Banho** (1 toque), **Queda** → *Sem lesão / Com lesão* (2 toques), **Dor / mal-estar** → local (2 toques),
     **Medicação** → **Dado** (2 toques, com sessão iniciada).
+  - **Separador Saúde** (3.º separador, **só com sessão de PIN**): mostra as condições ativas do utente e, para cada
+    uma, «O que fazer» passo a passo. Cada abertura fica registada (quem, qual utente, quando) e aparece em
+    `/admin/acessos`. É só leitura. Sem PIN, o tablet **nunca** mostra nomes de condições nem de medicamentos:
+    o bloco «Atenção» só tem a célula «O que fazer se…» com avisos de atuação (ex.: «Se estiver suado, trémulo ou
+    confuso, medir o açúcar…»), escritos sem o nome da doença.
 - Depois de cada registo aparece a confirmação e o botão **Desfazer** durante 10 s (sem perguntas "tem a
   certeza?"). Desfazer marca o registo como anulado; deixa de contar para os indicadores.
 - **Notas:** em quedas e dores, o botão **Nota** na secção **Hoje** permite acrescentar ou editar a nota a
@@ -261,8 +266,14 @@ Se usares outra rede, é o IPv4 do adaptador ligado a essa rede.
   escrever à mão. Não há fotos.
 - **Definições** (`/admin/definicoes`): que registos exigem sessão (Ocorrências, Medicação) e a duração da sessão
   (1–60 min). O valor guardado prevalece sobre o `application.yml`; cada alteração guarda quem, quando e o valor anterior.
-- **Acessos** (`/admin/acessos`): tentativas de PIN falhadas (data, número tentado, motivo) e bloqueios (em vigor
-  / terminados).
+- **Acessos** (`/admin/acessos`): tentativas de PIN falhadas (data, número tentado, motivo), bloqueios (em vigor
+  / terminados) e **acessos ao separador Saúde** (quem, utente, quando).
+- **Protocolos** (`/admin/protocolos`): as 11 condições (diabetes com insulina / oral, anticoagulação, AVC, enfarte,
+  insuficiência cardíaca, epilepsia, demência, DPOC com oxigénio, pacemaker, outra). Para cada uma edita-se o
+  nome, o protocolo «O que fazer» (um passo por linha) e o **aviso de atuação** (não pode levar o nome da condição).
+  **Os textos fornecidos são genéricos e têm de ser revistos pela enfermagem antes de qualquer uso real.**
+- **Condições do utente** (botão «Condições» na lista de utentes): adicionar, editar (detalhe, desde, notas) e
+  desativar/reativar; guarda quem e quando. Só uma condição ativa de cada tipo (exceto «Outra», que exige detalhe).
 - **Plano de medicação:** por utente (medicamento, dose, horário, observações/alergias). Cada alteração
   guarda **quem e quando** e mantém as versões anteriores (tabela `medicacao_plano_auditoria`), visíveis na
   página do plano.
@@ -301,6 +312,7 @@ Os nomes na grelha podem ocupar 2 linhas, mas nunca são cortados nem ficam abai
 Capturas: `screenshots/final/` (aspeto geral) e `screenshots/etapa5/` (regenerar com `.\mvnw.cmd test "-Dtest=CapturasEsteticasTest" "-Dcapturas=true"`).
 screenshots/etapa5b/ capturas da ficha em duas colunas (incluindo um pior caso artificial com a coluna esquerda a rolar)
 screenshots/etapa6/  capturas do acesso por número + PIN, da sessão e do admin de funcionárias e acessos
+screenshots/etapa7/  capturas do separador Saúde (pede PIN, protocolos), do admin de protocolos, condições e acessos
 
 ---
 
@@ -345,7 +357,12 @@ nessa altura; depois funciona offline. Para correr só os testes sem interface: 
 | `AdminDefinicoesTest` | página Definições: login, guardar, auditoria, caixas por marcar = não, aviso da medicação, validação |
 | `AcessoUiTest` | fluxo completo pelo teclado do ecrã (número → OK → PIN → entra ao 4.º dígito), sem campos de texto, teclas ≥ 2 cm, medicação → acesso → volta ao mesmo painel, vários utentes com um login, expiração, Sair |
 
-Total: **289 testes** (mais 3, `CapturasEsteticasTest`, que só correm com `-Dcapturas=true`). Os de interface demoram
+| `SaudeServiceTest` | condições e protocolos: validações (duplicadas, «Outra» com detalhe, data futura), avisos de atuação sem nomes de doenças, passos, acessos |
+| `SaudeMvcTest` | Saúde só com PIN (redirect/HX-Redirect e regresso ao separador), cada abertura registada, **nenhum nome de condição, protocolo, nota ou medicamento no tablet sem sessão** |
+| `AdminSaudeTest` | `/admin/protocolos`, condições do utente, acessos à Saúde; login, CSRF, 404 entre utentes |
+| `SaudeUiTest` | fluxo completo no Chromium: ficha → Saúde → PIN → protocolos → Registos → Saúde → sessão expirada → PIN |
+
+Total: **341 testes** (mais 4, `CapturasEsteticasTest`, que só correm com `-Dcapturas=true`). Os de interface demoram
 cerca de 3 minutos porque esperam temporizadores reais de 10 s e 60 s.
 O `axe.min.js` está em `src/test/resources/axe/` e só é usado nos testes (a aplicação não tem dependências externas).
 
@@ -361,12 +378,13 @@ src/main/java/pt/lar/
   repositories/  Spring Data JPA
   services/      Regras, RegistoService, GrelhaService, FichaService, PlanoService, …
 src/main/resources/
-  db/migration/  V1__schema.sql, V2__fotos_e_historico_de_notas.sql, V3__perfil_de_atencao.sql, V4__funcionarios_e_acesso_por_pin.sql, V5__definicoes.sql (Flyway)
+  db/migration/  V1__schema.sql, V2__fotos_e_historico_de_notas.sql, V3__perfil_de_atencao.sql, V4__funcionarios_e_acesso_por_pin.sql, V5__definicoes.sql, V6__banho_nunca_exige_sessao.sql, V7__condicoes_e_saude.sql (Flyway)
   templates/     tablet/*, admin/*  (Thymeleaf)
   static/        css/, fonts/ (Atkinson Hyperlegible), js/htmx.min.js (local), manifest.json, icons/
 screenshots/final/   capturas 1280×800 do aspeto final (grelha, ficha, admin)
 screenshots/etapa5/  capturas da Etapa 5: «Atenção», alergias, «Sobre mim» e formulário do perfil
 ```
+(Etapa 7: `SaudeService`, `AdminSaudeController`, entidades `CondicaoProtocolo`, `UtenteCondicao`, `AcessoSaude`.)
 
 ## 8. Fora de âmbito (de propósito)
 

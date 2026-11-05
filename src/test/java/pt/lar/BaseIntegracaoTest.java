@@ -92,9 +92,19 @@ public abstract class BaseIntegracaoTest {
     @Autowired protected DefinicaoRepository definicoesRepo;
     @Autowired protected DefinicaoAuditoriaRepository definicoesAuditoria;
     @Autowired protected DefinicoesService definicoesService;
+    @Autowired protected pt.lar.repositories.UtenteCondicaoRepository utenteCondicoes;
+    @Autowired protected pt.lar.repositories.AcessoSaudeRepository acessosSaude;
+    @Autowired protected pt.lar.services.SaudeService saudeService;
+    @Autowired protected org.springframework.jdbc.core.JdbcTemplate jdbc;
+
+    /** Catálogo de condições tal como a V7 o cria: os testes que o editam são repostos antes de cada teste. */
+    private static java.util.List<java.util.Map<String, Object>> catalogoOriginal;
 
     @BeforeEach
     void limparEFixarRelogio() {
+        acessosSaude.deleteAllInBatch();
+        utenteCondicoes.deleteAllInBatch();
+        reporCatalogoDeCondicoes();
         registos.deleteAllInBatch();
         tentativas.deleteAllInBatch();
         bloqueios.deleteAllInBatch();
@@ -106,6 +116,16 @@ public abstract class BaseIntegracaoTest {
         utentes.deleteAllInBatch();
         utilizadores.deleteAllInBatch();
         relogio.definir("2026-11-03T10:30:00");     // terça-feira, depois das 09:00 e dentro da hora de tolerância
+    }
+
+    private void reporCatalogoDeCondicoes() {
+        if (catalogoOriginal == null) {
+            catalogoOriginal = jdbc.queryForList("select codigo, nome, protocolo, aviso from condicao_protocolo");
+        }
+        for (var c : catalogoOriginal) {
+            jdbc.update("update condicao_protocolo set nome = ?, protocolo = ?, aviso = ?, atualizado_por = null where codigo = ?",
+                    c.get("nome"), c.get("protocolo"), c.get("aviso"), c.get("codigo"));
+        }
     }
 
     /** Funcionária de teste com o PIN indicado (BCrypt a sério). */

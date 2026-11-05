@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="pt-PT" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{admin/layout :: head('Protocolos')}"></head>
+<body>
+<header th:replace="~{admin/layout :: topo(${menu})}"></header>
+<main class="conteudo">
+    <div th:replace="~{admin/layout :: mensagens}"></div>
+    <h1>Protocolos de saúde</h1>
+    <p class="suave">Para cada condição: o <strong>«O que fazer»</strong> (aparece no separador Saúde do tablet, com PIN) e o
+        <strong>aviso de atuação</strong> (aparece no bloco Atenção, sem PIN, por isso <em>nunca deve levar o nome da condição</em>).
+        Os textos de partida são genéricos: a enfermagem deve revê-los antes de qualquer uso real.</p>
+
+    <table class="tabela">
+        <thead><tr><th>Condição</th><th>Aviso de atuação (sem PIN)</th><th>Última alteração</th><th class="acoes">Ações</th></tr></thead>
+        <tbody>
+        <tr th:each="c : ${condicoes}">
+            <td th:text="${c.nome()}">Diabetes</td>
+            <td><span th:if="${c.aviso() != null}" th:text="${c.aviso()}">Aviso</span>
+                <span class="suave" th:if="${c.aviso() == null}">— sem aviso —</span></td>
+            <td class="suave pequeno" th:text="${c.ultima()}">01/11/2026</td>
+            <td class="acoes"><a class="botao botao-claro" th:href="@{/admin/protocolos/{c}(c=${c.codigo()})}">Editar</a></td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+</body>
+</html>

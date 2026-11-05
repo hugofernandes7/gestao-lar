@@ -88,7 +88,7 @@ class CapturasEsteticasTest extends BaseVisualTest {
         perfis.guardar(quarto4.getId(), new pt.lar.services.PerfilService.Dados(
                 "Penicilina, marisco, frutos secos, látex, iodo, anti-inflamatórios, sulfamidas, picadas de insetos, ovo",
                 pt.lar.models.Mobilidade.CADEIRA_RODAS, 2, pt.lar.models.RiscoQueda.ALTO,
-                pt.lar.models.TexturaAlimentar.LIQUIDOS_ESPESSADOS, "Triturada, sem sal, diabética e hipogordurada", true,
+                pt.lar.models.TexturaAlimentar.LIQUIDOS_ESPESSADOS, "Triturada, sem sal, sem açúcar e hipogordurada", true,
                 true, true, true, true, true, true, "Não deixar sozinho na casa de banho nem na cama sem grades",
                 "D. José", "Gosta de falar"), enfermeira);
         pagina.navigate(url("/tablet/utentes/" + quarto4.getId()));
@@ -102,6 +102,38 @@ class CapturasEsteticasTest extends BaseVisualTest {
     }
 
     @org.springframework.beans.factory.annotation.Autowired pt.lar.services.AcessoService acessos;
+
+    /** Etapa 7: avisos de atuação sem PIN, separador Saúde com PIN e o admin de protocolos, condições e acessos. */
+    @Test
+    void capturarEtapa7() throws Exception {
+        Path pasta = Path.of("screenshots", "etapa7");
+        Files.createDirectories(pasta);
+
+        pagina.navigate(url("/tablet/utentes/" + quarto4.getId()));
+        guardar(pasta, "01-ficha-sem-pin-aviso-de-atuacao-sem-diagnostico", false);
+        tocar(pagina.locator(".aba", new com.microsoft.playwright.Page.LocatorOptions().setHasText("Saúde")));
+        pagina.waitForURL("**/tablet/acesso**");
+        guardar(pasta, "02-saude-pede-pin", false);
+        digitarNoTeclado(1, "1111");
+        pagina.waitForSelector(".saude");
+        guardar(pasta, "03-saude-protocolos-com-pin", false);
+        pagina.navigate(url("/tablet/utentes/" + utentes.findAllByOrderByIdAsc().get(12).getId() + "?aba=saude"));
+        guardar(pasta, "04-saude-diabetes-com-insulina", false);
+
+        entrarNoAdminDe(pasta);
+    }
+
+    private void entrarNoAdminDe(Path pasta) throws Exception {
+        entrarNoAdmin();
+        pagina.navigate(url("/admin/protocolos"));
+        guardar(pasta, "05-admin-protocolos", true);
+        pagina.navigate(url("/admin/protocolos/DIABETES_INSULINA"));
+        guardar(pasta, "06-admin-editar-protocolo", true);
+        pagina.navigate(url("/admin/utentes/" + quarto4.getId() + "/condicoes"));
+        guardar(pasta, "07-admin-condicoes-do-utente", true);
+        pagina.navigate(url("/admin/acessos"));
+        guardar(pasta, "08-admin-acessos-saude", true);
+    }
 
     /** Etapa 6: acesso por número + PIN, sessão, medicação com sessão, admin das funcionárias e dos acessos. */
     @Test

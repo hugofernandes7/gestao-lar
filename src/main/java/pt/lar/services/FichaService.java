@@ -67,10 +67,11 @@ public class FichaService {
 
     /** Separadores da ficha: os registos de sempre (por defeito) e "Sobre mim" (só leitura). */
     public enum Aba {
-        REGISTOS, SOBRE;
+        REGISTOS, SOBRE, SAUDE;
 
         public static Aba de(String s) {
-            return "sobre".equalsIgnoreCase(s) ? SOBRE : REGISTOS;
+            if ("sobre".equalsIgnoreCase(s)) return SOBRE;
+            return "saude".equalsIgnoreCase(s) ? SAUDE : REGISTOS;
         }
     }
 
@@ -83,7 +84,7 @@ public class FichaService {
      */
     public record Atencao(boolean preenchido, String alergias, String mobilidade, String transferencia, RiscoQueda risco,
                           String textura, String dieta, boolean ajudaAComer, List<Chip> comunicacao, List<String> avisos,
-                          String revisto) {
+                          String revisto, List<String> avisosAcao) {
         public String riscoClasse() {
             return risco == null ? "" : risco.name().toLowerCase();
         }
@@ -94,7 +95,8 @@ public class FichaService {
 
     public record Ficha(Utente utente, List<Aviso> avisos, Registo banho, Painel painel, Mensagem mensagem,
                         List<GrupoToma> grupos, String planoAtualizado, List<LinhaHoje> hoje, Long registoNota,
-                        String notaAtual, Aba aba, Atencao atencao, SobreMim sobre) {
+                        String notaAtual, Aba aba, Atencao atencao, SobreMim sobre,
+                        List<SaudeService.CartaoCondicao> saude) {
         public List<LocalDor> locaisDor() {
             return List.of(LocalDor.values());
         }
@@ -108,11 +110,13 @@ public class FichaService {
     private final Clock clock;
     private final pt.lar.config.LarProperties props;
     private final PerfilService perfis;
+    private final SaudeService saudeService;
 
     public FichaService(UtenteRepository utentes, RegistoRepository registos, MedicacaoPlanoRepository planos,
                         Regras regras, Formatos fmt, Clock clock, pt.lar.config.LarProperties props,
-                        PerfilService perfis) {
+                        PerfilService perfis, SaudeService saudeService) {
         this.perfis = perfis;
+        this.saudeService = saudeService;
         this.utentes = utentes;
         this.registos = registos;
         this.planos = planos;
@@ -136,7 +140,8 @@ public class FichaService {
      */
     public Ficha montar(Long utenteId, Painel painel, Mensagem mensagem, Long registoNota, Aba aba, boolean comSessao) {
         if (painel == Painel.MEDICACAO && !comSessao) painel = Painel.NENHUM;
-        if (aba == Aba.SOBRE) painel = Painel.NENHUM;          // "Sobre mim" é só leitura: sem painéis
+        if (aba == Aba.SAUDE && !comSessao) aba = Aba.REGISTOS;   // a Saúde nunca se mostra sem sessão de PIN
+        if (aba != Aba.REGISTOS) painel = Painel.NENHUM;          // "Sobre mim" e "Saúde" são só leitura: sem painéis
         Utente utente = utentes.findById(utenteId).filter(Utente::isAtivo)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         Instant agora = clock.instant();
@@ -182,15 +187,18 @@ public class FichaService {
         }
 
         Optional<UtentePerfil> perfil = perfis.obter(utenteId);
-        Atencao atencao = perfil.map(this::atencao).orElse(new Atencao(false, null, null, null, null, null, null, false,
-                List.of(), List.of(), null));
+        // Avisos de atuação das condições (sem o nome da condição): aparecem sem PIN. Os nomes só existem na aba Saúde.
+        List<String> avisosAcao = saudeService.avisosDeAtuacao(utenteId);
+        Atencao atencao = perfil.map(p -> atencao(p, avisosAcao)).orElse(new Atencao(false, null, null, null, null, null, null,
+                false, List.of(), List.of(), null, avisosAcao));
         SobreMim sobre = perfil.map(p -> new SobreMim(p.getTratamento(), p.getGostos())).orElse(new SobreMim(null, null));
 
         return new Ficha(utente, avisos, banho, painel, mensagem, grupos, textoPlanoAtualizado(plano), hoje,
-                registoNota, notaAtual, aba, atencao, sobre);
+                registoNota, notaAtual, aba, atencao, sobre,
+                aba == Aba.SAUDE ? saudeService.cartoes(utenteId) : null);
     }
 
-    private Atencao atencao(UtentePerfil p) {
+    private Atencao atencao(UtentePerfil p, List<String> avisosAcao) {
         List<Chip> comunicacao = new ArrayList<>();
         if (p.isOuveMalEsq()) comunicacao.add(new Chip("ouvido", "Ouve mal (esq.)"));
         if (p.isOuveMalDir()) comunicacao.add(new Chip("ouvido", "Ouve mal (dir.)"));
@@ -204,7 +212,7 @@ public class FichaService {
                 + (p.getRevistoPor() != null ? " por " + p.getRevistoPor().getNome() : "");
         return new Atencao(true, p.getAlergias(), p.getMobilidade().getEtiqueta(), transferencia, p.getRiscoQueda(),
                 p.getTextura().getEtiqueta(), p.getDieta(), p.isAjudaAComer(), comunicacao,
-                p.getAvisos() == null ? List.of() : List.of(p.getAvisos()), revisto);
+                p.getAvisos() == null ? List.of() : List.of(p.getAvisos()), revisto, avisosAcao);
     }
 
     private String textoAviso(Registo r) {

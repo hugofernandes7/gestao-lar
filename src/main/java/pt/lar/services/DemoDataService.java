@@ -26,7 +26,12 @@ import pt.lar.models.RegistoNotaHistorico;
 import pt.lar.models.TipoRegisto;
 import pt.lar.models.Utente;
 import pt.lar.models.UtilizadorGestao;
+import pt.lar.models.AcessoSaude;
+import pt.lar.models.UtenteCondicao;
+import pt.lar.repositories.AcessoSaudeRepository;
+import pt.lar.repositories.CondicaoProtocoloRepository;
 import pt.lar.repositories.FuncionarioRepository;
+import pt.lar.repositories.UtenteCondicaoRepository;
 import pt.lar.repositories.MedicacaoPlanoAuditoriaRepository;
 import pt.lar.repositories.MedicacaoPlanoRepository;
 import pt.lar.repositories.RegistoNotaHistoricoRepository;
@@ -77,11 +82,19 @@ public class DemoDataService {
     private final LarProperties props;
     private final PerfilService perfis;
     private final FuncionarioRepository funcionarios;
+    private final CondicaoProtocoloRepository catalogoCondicoes;
+    private final UtenteCondicaoRepository condicoes;
+    private final AcessoSaudeRepository acessosSaude;
 
     public DemoDataService(UtenteRepository utentes, UtilizadorGestaoRepository utilizadores,
                            MedicacaoPlanoRepository planos, MedicacaoPlanoAuditoriaRepository auditoria,
                            RegistoRepository registos, RegistoNotaHistoricoRepository notas, Clock clock, LarProperties props,
-                           PerfilService perfis, FuncionarioRepository funcionarios) {
+                           PerfilService perfis, FuncionarioRepository funcionarios,
+                           CondicaoProtocoloRepository catalogoCondicoes, UtenteCondicaoRepository condicoes,
+                           AcessoSaudeRepository acessosSaude) {
+        this.catalogoCondicoes = catalogoCondicoes;
+        this.condicoes = condicoes;
+        this.acessosSaude = acessosSaude;
         this.perfis = perfis;
         this.funcionarios = funcionarios;
         this.utentes = utentes;
@@ -97,6 +110,8 @@ public class DemoDataService {
     /** Apaga os dados clínicos e volta a gerar a demo (os utilizadores de gestão mantêm-se). */
     @Transactional
     public void repor() {
+        acessosSaude.deleteAllInBatch();
+        condicoes.deleteAllInBatch();
         registos.deleteAllInBatch();
         auditoria.deleteAllInBatch();
         planos.deleteAllInBatch();
@@ -204,12 +219,53 @@ public class DemoDataService {
             perfis.guardar(id, d, autor, agora.minus(Duration.ofDays(2L + (i * 3L) % 40)));
         }
 
+        // 6b. Condições de saúde (o nome só se vê na aba Saúde, com PIN; no tablet sem PIN só os avisos de atuação)
+        condicoesDeDemonstracao(lista, hoje, autor, agora);
+
         // 7. Quem registou: as funcionárias de demonstração (se existirem) alternam; um em cada cinco fica sem sessão (nulo)
         List<Funcionario> equipa = funcionarios.findAllByOrderByNumeroAsc();
         if (!equipa.isEmpty()) {
             for (Registo r : registos.findAll()) {
                 if (r.getId() % 5 != 0) r.setRealizadoPor(equipa.get((int) (r.getId() % equipa.size())));
             }
+        }
+    }
+
+    private void condicao(Utente u, String codigo, String detalhe, LocalDate desde, String notas, UtilizadorGestao autor,
+                          Instant quando, boolean ativa) {
+        var tipo = catalogoCondicoes.findById(codigo).orElseThrow();
+        UtenteCondicao c = condicoes.save(new UtenteCondicao(u, tipo, detalhe, desde, notas, quando, autor));
+        if (!ativa) c.definirAtiva(false, quando, autor);
+    }
+
+    private void condicoesDeDemonstracao(List<Utente> l, LocalDate hoje, UtilizadorGestao autor, Instant agora) {
+        Instant antes = agora.minus(Duration.ofDays(20));
+        condicao(l.get(0), "ENFARTE", "Há alguns anos; sem queixas desde então", hoje.minusYears(8), null, autor, antes, true);
+        condicao(l.get(1), "DIABETES_ORAL", "Tipo 2", hoje.minusYears(12), "Vigiar a dieta nas festas e nos lanches.", autor, antes, true);
+        condicao(l.get(2), "DPOC_OXIGENIO", "Oxigénio à noite e quando tem falta de ar", hoje.minusYears(4), "Tubo de oxigénio verificado no turno da manhã.", autor, antes, true);
+        condicao(l.get(3), "ANTICOAGULADO", "Controlo semanal", hoje.minusYears(3), "Qualquer queda: avisar a enfermagem de imediato.", autor, antes, true);
+        condicao(l.get(3), "OUTRA", "Hipertensão arterial", hoje.minusYears(15), null, autor, antes, true);
+        condicao(l.get(4), "ANTICOAGULADO", "Terminou o tratamento", hoje.minusYears(2), null, autor, antes, false);
+        condicao(l.get(5), "AVC_SEQUELAS", "Dificuldade em engolir líquidos", hoje.minusYears(5), "Refeições sentado e direito.", autor, antes, true);
+        condicao(l.get(6), "INSUF_CARDIACA", null, hoje.minusYears(6), null, autor, antes, true);
+        condicao(l.get(6), "PACEMAKER", "Colocado há 2 anos", hoje.minusYears(2), null, autor, antes, true);
+        condicao(l.get(7), "DEMENCIA", "Fase avançada", hoje.minusYears(5), "Fica mais calmo com fotografias antigas.", autor, antes, true);
+        condicao(l.get(8), "DEMENCIA", "Fase inicial", hoje.minusYears(2), "Pode tentar sair do quarto à noite.", autor, antes, true);
+        condicao(l.get(9), "DIABETES_ORAL", "Tipo 2", hoje.minusYears(9), null, autor, antes, true);
+        condicao(l.get(10), "EPILEPSIA", "Crises raras, controladas", hoje.minusYears(15), "Última crise há mais de 2 anos.", autor, antes, true);
+        condicao(l.get(11), "DPOC_OXIGENIO", null, hoje.minusYears(3), null, autor, antes, true);
+        condicao(l.get(12), "DIABETES_INSULINA", "Tipo 2, insulina ao pequeno-almoço e ao jantar", hoje.minusYears(10),
+                "Não saltar refeições. Já teve descidas de açúcar de manhã.", autor, antes, true);
+        condicao(l.get(13), "DEMENCIA", "Fase moderada", hoje.minusYears(4), null, autor, antes, true);
+        condicao(l.get(13), "ENFARTE", null, hoje.minusYears(7), null, autor, antes, true);
+        condicao(l.get(14), "OUTRA", "Osteoporose", hoje.minusYears(6), "Tem cuidado extra ao levantar e a deitar: ossos frágeis.", autor, antes, true);
+
+        // Alguns acessos recentes ao separador Saúde (se existirem funcionárias de demonstração)
+        List<Funcionario> equipa = funcionarios.findAllByOrderByNumeroAsc();
+        if (!equipa.isEmpty()) {
+            acessosSaude.save(new AcessoSaude(equipa.get(0), l.get(12), agora.minus(Duration.ofHours(3))));
+            acessosSaude.save(new AcessoSaude(equipa.get(equipa.size() > 1 ? 1 : 0), l.get(3), agora.minus(Duration.ofHours(2))));
+            acessosSaude.save(new AcessoSaude(equipa.get(0), l.get(7), agora.minus(Duration.ofMinutes(50))));
         }
     }
 
@@ -254,7 +310,7 @@ public class DemoDataService {
             new P().mob(Mobilidade.BENGALA).risco(RiscoQueda.MEDIO).comida(TexturaAlimentar.NORMAL, "Sem sal", false)
                     .com("oculos").trato("D. Maria")
                     .gostos("Gosta de ouvir fado e de falar dos netos. Foi costureira. Fica mais calma com a rádio baixinho."),
-            new P().alergias("Penicilina").comida(TexturaAlimentar.NORMAL, "Diabética", false).com("esq", "auditiva")
+            new P().alergias("Penicilina").comida(TexturaAlimentar.NORMAL, "Sem açúcar", false).com("esq", "auditiva")
                     .trato("Sr. António; falar de frente e devagar")
                     .gostos("Futebol (é do Benfica), dominó e jornais. Foi motorista de camionagem."),
             new P().alergias("Marisco").mob(Mobilidade.ANDARILHO, 1).risco(RiscoQueda.MEDIO)
@@ -288,7 +344,7 @@ public class DemoDataService {
             new P().mob(Mobilidade.ANDARILHO, 1).risco(RiscoQueda.MEDIO).comida(TexturaAlimentar.MOLE, null, false)
                     .com("esq", "dentaria").trato("Sr. Armando")
                     .gostos("Foi marinheiro. Gosta de contar histórias do mar."),
-            new P().alergias("Penicilina").comida(TexturaAlimentar.NORMAL, "Diabética", false).com("oculos")
+            new P().alergias("Penicilina").comida(TexturaAlimentar.NORMAL, "Sem açúcar", false).com("oculos")
                     .trato("D. Lurdes").gostos("Gosta de culinária e de receitas antigas. Costuma ajudar a pôr a mesa."),
             new P().mob(Mobilidade.CADEIRA_RODAS, 1).risco(RiscoQueda.MEDIO)
                     .comida(TexturaAlimentar.NORMAL, "Sem sal", true).com("auditiva", "dir", "desor")

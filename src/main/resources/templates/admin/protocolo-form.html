@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="pt-PT" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{admin/layout :: head('Protocolo')}"></head>
+<body>
+<header th:replace="~{admin/layout :: topo(${menu})}"></header>
+<main class="conteudo estreito">
+    <div th:replace="~{admin/layout :: mensagens}"></div>
+    <p class="migalhas"><a href="/admin/protocolos">Protocolos</a> › <span th:text="${c.nome}">Condição</span></p>
+    <h1 th:text="${c.nome}">Condição</h1>
+
+    <form class="formulario" method="post" th:action="@{/admin/protocolos/{c}(c=${c.codigo})}">
+        <label>Nome da condição <span class="suave pequeno">(só aparece na Saúde, com PIN, e aqui)</span>
+            <input type="text" name="nome" th:value="${c.nome}" maxlength="80" required>
+        </label>
+
+        <label>O que fazer <span class="suave pequeno">(um passo por linha)</span>
+            <textarea name="protocolo" rows="10" maxlength="4000" required th:text="${c.protocolo}"></textarea>
+        </label>
+
+        <label>Aviso de atuação <span class="suave pequeno">(aparece no bloco Atenção, sem PIN: <strong>não escrever o nome da condição</strong>; vazio = sem aviso)</span>
+            <input type="text" name="aviso" th:value="${c.aviso}" maxlength="200">
+        </label>
+
+        <div class="barra">
+            <button type="submit" class="botao">Guardar</button>
+            <a class="botao botao-claro" href="/admin/protocolos">Cancelar</a>
+        </div>
+    </form>
+</main>
+</body>
+</html>

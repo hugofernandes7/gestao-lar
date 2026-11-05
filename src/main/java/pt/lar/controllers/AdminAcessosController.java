@@ -8,6 +8,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import pt.lar.services.AcessoService;
 import pt.lar.services.Formatos;
+import pt.lar.services.SaudeService;
 
 /** Tentativas de acesso por PIN falhadas e bloqueios, para a enfermagem poder consultar. */
 @Controller
@@ -23,8 +24,10 @@ public class AdminAcessosController {
     private final AcessoService acesso;
     private final Formatos fmt;
     private final Clock clock;
+    private final SaudeService saude;
 
-    public AdminAcessosController(AcessoService acesso, Formatos fmt, Clock clock) {
+    public AdminAcessosController(AcessoService acesso, Formatos fmt, Clock clock, SaudeService saude) {
+        this.saude = saude;
         this.acesso = acesso;
         this.fmt = fmt;
         this.clock = clock;
@@ -46,6 +49,7 @@ public class AdminAcessosController {
         model.addAttribute("falhas", falhas);
         model.addAttribute("bloqueios", bloqueios);
         model.addAttribute("limite", LIMITE);
+        model.addAttribute("acessosSaude", saude.acessosRecentes(LIMITE));
         model.addAttribute("menu", "acessos");
         return "admin/acessos";
     }

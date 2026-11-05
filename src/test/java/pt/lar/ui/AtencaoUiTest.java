@@ -39,6 +39,8 @@ class AtencaoUiTest extends BaseVisualTest {
 
     @Test
     void duasColunasAEsquerdaCercaDe40PorCentoEADireitaCercaDe60() {
+        // sem condições (e portanto sem avisos de atuação), a Atenção do quarto 4 cabe inteira; com elas, ver o teste a seguir
+        saudeService.condicoesDoUtente(quarto4.getId()).forEach(c -> saudeService.definirAtiva(c.getId(), false, null));
         abrirFicha(quarto4);
         double esq = num(".col-esq", "e => e.getBoundingClientRect().width");
         double dir = num(".col-dir", "e => e.getBoundingClientRect().width");
@@ -55,6 +57,16 @@ class AtencaoUiTest extends BaseVisualTest {
         assertThat(pagina.locator(".col-dir .hoje")).isAttached();
         assertThat(pagina.locator(".col-esq .btn-acao")).hasCount(0);
         assertThat(colunaEsquerdaRola()).as("com ocorrência recente, a Atenção do quarto 4 cabe sem rolar").isFalse();
+    }
+
+    @Test
+    void avisosDeAtuacaoDasCondicoesNaoFazemRolarAPaginaEOEssencialContinuaVisivel() {
+        abrirFicha(quarto4);                                   // com aviso de atuação: a coluna esquerda pode rolar sozinha
+        assertThat(pagina.locator(".cel-acao")).isVisible();
+
+        assertThat(paginaRola()).as("a página nunca rola").isFalse();
+        assertThat(num(".btn-acao", "e => e.getBoundingClientRect().bottom")).isLessThanOrEqualTo(800);
+        assertThat(num(".atencao-grelha .cel-meia", "e => e.getBoundingClientRect().bottom")).as("mobilidade e risco visíveis").isLessThanOrEqualTo(800);
     }
 
     @Test
@@ -98,10 +110,11 @@ class AtencaoUiTest extends BaseVisualTest {
         double botoesAntes = num(".btn-acao", "e => e.getBoundingClientRect().top");
         double abasAntes = num(".aba", "e => e.getBoundingClientRect().top");
 
-        // ...e mais 5 avisos clonados no DOM (a Etapa 7 acrescenta avisos de atuação derivados das condições): 6 no total.
+        // ...e mais 5 avisos clonados no DOM, além do aviso do perfil e da célula de atuação das condições (Etapa 7).
+        int avisosAntes = pagina.locator(".cel-aviso").count();
         pagina.evaluate("() => { const g = document.querySelector('.atencao-grelha'); const a = g.querySelector('.cel-aviso');"
                 + " for (let i = 0; i < 5; i++) g.appendChild(a.cloneNode(true)); }");
-        assertThat(pagina.locator(".cel-aviso")).hasCount(6);
+        assertThat(pagina.locator(".cel-aviso")).hasCount(avisosAntes + 5);
 
         assertThat(colunaEsquerdaRola()).as("o excesso rola só na coluna esquerda").isTrue();
         assertThat(paginaRola()).as("a página nunca rola").isFalse();

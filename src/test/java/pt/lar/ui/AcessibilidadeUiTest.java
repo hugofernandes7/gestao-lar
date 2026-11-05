@@ -143,6 +143,17 @@ class AcessibilidadeUiTest extends BaseVisualTest {
     }
 
     @Test
+    void saudeComSessao() throws Exception {
+        iniciarSessao(1, "1111");
+        pagina.navigate(url("/tablet/utentes/" + quarto4.getId() + "?aba=saude"));
+        pagina.waitForSelector(".saude-cartao");
+        verificar("ficha: Saúde (protocolos)");
+        pagina.navigate(url("/tablet/utentes/" + utentes.findAllByOrderByIdAsc().get(4).getId() + "?aba=saude"));
+        pagina.waitForSelector(".saude");
+        verificar("ficha: Saúde (sem condições)");
+    }
+
+    @Test
     void login() throws Exception {
         pagina.navigate(url("/admin/login"));
         verificar("login");
@@ -173,5 +184,11 @@ class AcessibilidadeUiTest extends BaseVisualTest {
         verificar("admin: acessos (falhas e bloqueio)");
         pagina.navigate(url("/admin/definicoes"));
         verificar("admin: definições");
+        pagina.navigate(url("/admin/protocolos"));
+        verificar("admin: protocolos");
+        pagina.navigate(url("/admin/protocolos/EPILEPSIA"));
+        verificar("admin: editar protocolo");
+        pagina.navigate(url("/admin/utentes/" + quarto4.getId() + "/condicoes"));
+        verificar("admin: condições do utente");
     }
 }

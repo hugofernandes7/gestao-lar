@@ -50,6 +50,16 @@
                 Perfil de atenção ainda por preencher. Peça à enfermagem.
             </p>
 
+            <div class="atencao-grelha" th:if="${!a.preenchido() and !a.avisosAcao().isEmpty()}">
+                <div class="cel cuidado cel-aviso cel-acao">
+                    <th:block th:replace="~{tablet/icones :: ic('info')}"/>
+                    <span class="cel-texto">
+                        <span class="rotulo">O que fazer se…</span>
+                        <strong th:each="av : ${a.avisosAcao()}" th:text="${av}">Aviso de atuação</strong>
+                    </span>
+                </div>
+            </div>
+
             <div class="atencao-grelha" th:if="${a.preenchido()}">
                 <div class="cel cuidado cel-alergia" th:if="${a.alergias() != null}">
                     <th:block th:replace="~{tablet/icones :: ic('alergia')}"/>
@@ -105,6 +115,15 @@
                     <th:block th:replace="~{tablet/icones :: ic('info')}"/>
                     <span class="cel-texto"><span class="rotulo">Aviso</span><strong th:text="${av}">Aviso especial</strong></span>
                 </div>
+
+                <!-- Avisos de atuação das condições de saúde (sem PIN): nunca levam o nome da condição. -->
+                <div class="cel cuidado cel-aviso cel-acao" th:unless="${a.avisosAcao().isEmpty()}">
+                    <th:block th:replace="~{tablet/icones :: ic('info')}"/>
+                    <span class="cel-texto">
+                        <span class="rotulo">O que fazer se…</span>
+                        <strong th:each="av : ${a.avisosAcao()}" th:text="${av}">Aviso de atuação</strong>
+                    </span>
+                </div>
             </div>
 
             <p class="revisto" th:if="${a.preenchido()}" th:text="${a.revisto()}">Revisto em 01/11 por Enfermeira</p>
@@ -122,6 +141,10 @@
                 <button type="button" class="aba" th:classappend="${f.aba().name() == 'SOBRE'} ? 'ativa'"
                         th:attr="aria-current=${f.aba().name() == 'SOBRE'} ? 'page' : null"
                         th:hx-get="@{${base} + '?aba=sobre'}">Sobre mim</button>
+                <!-- Saúde: pede número e PIN; o conteúdo só existe com sessão. -->
+                <button type="button" class="aba" th:classappend="${f.aba().name() == 'SAUDE'} ? 'ativa'"
+                        th:attr="aria-current=${f.aba().name() == 'SAUDE'} ? 'page' : null"
+                        th:hx-get="@{${base} + '?aba=saude'}">Saúde</button>
             </nav>
             <form class="sessao" method="post" action="/tablet/acesso/sair" th:if="${sessao != null}">
                 <input type="hidden" name="utente" th:value="${u.id}">
@@ -192,6 +215,23 @@
                     <p class="texto-livre" th:if="${f.sobre().gostos() != null}" th:text="${f.sobre().gostos()}">Gosta de música.</p>
                     <p class="vazio" th:if="${f.sobre().gostos() == null}">Ainda sem informação.</p>
                 </div>
+            </section>
+
+            <!-- Separador "Saúde" (só com sessão de PIN; só leitura): condições e o que fazer. -->
+            <section class="saude" th:if="${f.aba().name() == 'SAUDE'}" aria-label="Saúde">
+                <p class="vazio" th:if="${f.saude().isEmpty()}">Sem condições de saúde registadas.</p>
+                <article class="saude-cartao" th:each="c : ${f.saude()}">
+                    <h2 th:text="${c.nome()}">Condição</h2>
+                    <p class="saude-detalhe" th:if="${c.detalhe() != null or c.desde() != null}">
+                        <span th:if="${c.detalhe() != null}" th:text="${c.detalhe()}">detalhe</span>
+                        <span class="suave" th:if="${c.desde() != null}" th:text="${c.desde()}">desde 2019</span>
+                    </p>
+                    <h3>O que fazer</h3>
+                    <ol class="saude-passos">
+                        <li th:each="p : ${c.passos()}" th:text="${p}">Passo</li>
+                    </ol>
+                    <p class="saude-notas texto-livre" th:if="${c.notas() != null}" th:text="${c.notas()}">Notas</p>
+                </article>
             </section>
 
             <th:block th:if="${f.aba().name() == 'REGISTOS'}">
