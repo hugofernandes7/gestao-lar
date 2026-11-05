@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-PT" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{admin/layout :: head('Acessos')}"></head>
+<body>
+<header th:replace="~{admin/layout :: topo(${menu})}"></header>
+<main class="conteudo">
+    <div th:replace="~{admin/layout :: mensagens}"></div>
+    <h1>Acessos por PIN</h1>
+    <p class="suave">Tentativas falhadas no tablet e bloqueios. Cinco PINs errados bloqueiam esse número durante 5 minutos;
+        vinte falhas seguidas (qualquer número) bloqueiam o acesso por PIN durante 15 minutos.</p>
+
+    <h2>Bloqueios</h2>
+    <p class="suave" th:if="${bloqueios.isEmpty()}">Nenhum bloqueio até agora.</p>
+    <table class="tabela" th:unless="${bloqueios.isEmpty()}">
+        <thead><tr><th>Âmbito</th><th>Início</th><th>Fim</th><th>Estado</th></tr></thead>
+        <tbody>
+        <tr th:each="b : ${bloqueios}">
+            <td th:text="${b.ambito()}">Número 7</td>
+            <td th:text="${b.inicio()}">03/11/2026 10:00</td>
+            <td th:text="${b.fim()}">03/11/2026 10:05</td>
+            <td><span class="etiqueta" th:classappend="${b.ativo()} ? 'etiqueta-aviso' : 'etiqueta-off'"
+                      th:text="${b.ativo()} ? 'Em vigor' : 'Terminado'">Terminado</span></td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h2>Tentativas falhadas</h2>
+    <p class="suave" th:if="${falhas.isEmpty()}">Nenhuma tentativa falhada.</p>
+    <table class="tabela tabela-compacta" th:unless="${falhas.isEmpty()}">
+        <thead><tr><th>Data e hora</th><th>Número tentado</th><th>Motivo</th></tr></thead>
+        <tbody>
+        <tr th:each="t : ${falhas}">
+            <td th:text="${t.quando()}">03/11/2026 10:00</td>
+            <td th:text="${t.numero()}">7</td>
+            <td th:text="${t.motivo()}">PIN incorreto</td>
+        </tr>
+        </tbody>
+    </table>
+    <p class="suave pequeno" th:if="${falhas.size() >= limite}" th:text="${'Mostram-se as ' + limite + ' mais recentes.'}"></p>
+</main>
+</body>
+</html>

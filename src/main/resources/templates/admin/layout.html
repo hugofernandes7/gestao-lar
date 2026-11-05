@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="pt-PT" xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(titulo)">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${titulo} + ' — Gestão do Lar'">Gestão do Lar</title>
+    <link rel="icon" type="image/png" href="/icons/icon-192.png">
+    <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+<header th:fragment="topo(menu)" class="topo">
+    <strong class="marca">Gestão do Lar</strong>
+    <nav>
+        <a href="/admin/utentes" th:classappend="${menu == 'utentes'} ? 'ativo'">Utentes</a>
+        <a href="/admin/historico" th:classappend="${menu == 'historico'} ? 'ativo'">Histórico</a>
+        <a href="/admin/funcionarios" th:classappend="${menu == 'funcionarios'} ? 'ativo'">Funcionárias</a>
+        <a href="/admin/acessos" th:classappend="${menu == 'acessos'} ? 'ativo'">Acessos</a>
+        <a href="/admin/definicoes" th:classappend="${menu == 'definicoes'} ? 'ativo'">Definições</a>
+    </nav>
+    <span class="espaco"></span>
+    <span class="quem" th:text="${utilizadorNome}">Enfermeira</span>
+    <form th:action="@{/admin/logout}" method="post">
+        <button type="submit" class="botao botao-claro">Sair</button>
+    </form>
+</header>
+<div th:fragment="mensagens" th:remove="tag">
+    <div class="alerta alerta-ok" th:if="${sucesso}" th:text="${sucesso}" role="status"></div>
+    <div class="alerta alerta-erro" th:if="${erro}" th:text="${erro}" role="alert"></div>
+</div>
+</body>
+</html>

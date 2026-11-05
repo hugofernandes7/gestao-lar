@@ -1,0 +1,112 @@
+/* Vista de gestão (desktop): mesma linguagem do tablet — creme, azul-marinho, Atkinson Hyperlegible.
+   Cores com significado fixo: vermelho = ocorrência/perigo, laranja = atraso, verde = feito/válido. */
+@font-face { font-family: "Atkinson"; font-weight: 400; src: url("/fonts/atkinson-hyperlegible-400.woff2") format("woff2"); font-display: swap; }
+@font-face { font-family: "Atkinson"; font-weight: 700; src: url("/fonts/atkinson-hyperlegible-700.woff2") format("woff2"); font-display: swap; }
+
+:root {
+    --azul: #17406a; --azul-escuro: #0e2b4a; --azul-claro: #e3ecf4; --azul-realce: #a9c6e0;
+    --texto: #1f2530; --suave: #545b66;
+    --borda: #e3d9cb; --fundo: #f6f0e7;
+    --vermelho: #b71c1c; --verde: #1b7a2f;
+    --raio: 16px;
+    --sombra: 0 1px 3px rgba(40, 40, 50, .08), 0 6px 16px rgba(40, 40, 50, .08);
+}
+* { box-sizing: border-box; }
+body { margin: 0; font: 17px/1.4 "Atkinson", "Segoe UI", system-ui, sans-serif; color: var(--texto); background: var(--fundo); }
+a { color: var(--azul); }
+h1 { font-size: 1.7rem; margin: 0 0 .6rem; }
+h1 small { font-size: 1rem; font-weight: 400; color: var(--suave); }
+h2 { font-size: 1.25rem; margin: 2rem 0 .3rem; color: var(--azul); }
+:focus-visible { outline: 3px solid var(--azul-realce); outline-offset: 2px; }
+
+.topo { display: flex; align-items: center; gap: 1.2rem; padding: .7rem 1.5rem; background: var(--azul-escuro); color: #fff; box-shadow: 0 4px 14px rgba(14, 43, 74, .25); }
+.topo nav { display: flex; gap: .3rem; }
+.topo nav a { color: #fff; text-decoration: none; padding: .4rem .9rem; border-radius: 12px; }
+.topo nav a.ativo, .topo nav a:hover { background: rgba(255,255,255,.18); }
+.marca { font-size: 1.2rem; }
+.espaco { flex: 1; }
+.quem { opacity: 1; }
+
+.conteudo { max-width: 1150px; margin: 1.5rem auto; padding: 0 1.5rem; }
+.estreito { max-width: 640px; }
+.barra { display: flex; align-items: center; gap: .6rem; margin: .4rem 0 1rem; flex-wrap: wrap; }
+.migalhas { color: var(--suave); margin: 0 0 .4rem; }
+.suave { color: var(--suave); }
+.pequeno { font-size: .88rem; }
+
+.botao {
+    display: inline-block; padding: .55rem 1.1rem; font: inherit; font-weight: 700; text-decoration: none; cursor: pointer;
+    color: #fff; background: var(--azul); border: 2px solid var(--azul); border-radius: 14px;
+}
+.botao:hover { background: var(--azul-escuro); border-color: var(--azul-escuro); }
+.botao-claro { color: var(--azul); background: #fff; border-color: var(--azul); }
+.botao-claro:hover { background: var(--azul-claro); border-color: var(--azul); }
+.botao-perigo { background: var(--vermelho); border-color: var(--vermelho); }
+.botao-perigo:hover { background: #8f1515; border-color: #8f1515; }
+.em-linha { display: inline; margin: 0; }
+
+.tabela { width: 100%; border-collapse: separate; border-spacing: 0; background: #fff; border-radius: var(--raio); box-shadow: var(--sombra); overflow: hidden; }
+.tabela th, .tabela td { padding: .6rem .9rem; text-align: left; vertical-align: middle; border-bottom: 1px solid var(--borda); }
+.tabela tr:last-child td { border-bottom: 0; }
+.tabela th { background: var(--azul-claro); font-size: .85rem; text-transform: uppercase; letter-spacing: .04em; color: var(--azul); }
+.tabela .acoes { text-align: right; white-space: nowrap; }
+.tabela-compacta td, .tabela-compacta th { padding: .4rem .7rem; font-size: .92rem; }
+.miniatura { width: 46px; height: 46px; object-fit: cover; border-radius: 50%; display: block; }
+
+/* Estado "desativado" / retirado: cinzento, com faixa tracejada à esquerda e etiqueta escrita (nunca só cor) */
+tr.inativo td { color: var(--suave); background: #f3f1ed; }
+tr.inativo td:first-child { box-shadow: inset 6px 0 0 #b9bec6; }
+tr.inativo .miniatura { filter: grayscale(1); opacity: .7; }
+/* Anulado: riscado, com quem/quando por baixo */
+tr.anulado td { color: var(--suave); background: #f3f1ed; }
+tr.anulado td:not(:nth-last-child(-n+2)) { text-decoration: line-through; }
+
+.etiqueta { display: inline-block; padding: .1rem .7rem; border-radius: 999px; font-size: .85rem; font-weight: 700; }
+.etiqueta-ok { background: #dff3e3; color: #0d4d1a; }
+.etiqueta-off { background: #e3e5e8; color: #3d434c; border: 1px dashed #8a929c; }
+
+.formulario { display: flex; flex-direction: column; gap: 1rem; background: #fff; border-radius: var(--raio); box-shadow: var(--sombra); padding: 1.3rem; }
+.formulario label, .filtros label { display: flex; flex-direction: column; gap: .25rem; font-weight: 700; font-size: .98rem; }
+.formulario input[type=text], .formulario input[type=password], .formulario select, .formulario textarea,
+.filtros select, .filtros input {
+    font: inherit; padding: .55rem .7rem; border: 2px solid #b7aea0; border-radius: 12px; background: #fffdf9; font-weight: 400; color: var(--texto);
+}
+.formulario input:focus, .formulario select:focus, .formulario textarea:focus, .filtros select:focus, .filtros input:focus { border-color: var(--azul); outline: 3px solid var(--azul-realce); }
+.formulario .checkbox { flex-direction: row; align-items: center; font-weight: 400; }
+.campo-foto { display: flex; gap: 1.2rem; align-items: flex-start; }
+.foto-previa { width: 120px; height: 120px; object-fit: cover; border-radius: 50%; }
+.filtros { display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap; margin-bottom: 1rem; }
+
+.alerta { padding: .65rem 1rem; border-radius: 14px; margin: 0 0 1rem; }
+.alerta-ok { background: #e6f3e8; border-left: 8px solid var(--verde); color: #0d4d1a; }
+.alerta-erro { background: #fde5e5; border-left: 8px solid var(--vermelho); color: #7f1010; }
+
+.demo { margin-top: 2.5rem; padding-top: 1rem; border-top: 2px dashed var(--borda); }
+
+body.centrado { display: grid; place-items: center; min-height: 100vh; }
+.cartao-login { width: min(420px, 92vw); background: #fff; border-radius: 22px; box-shadow: var(--sombra); padding: 2rem; }
+.cartao-login h1 { margin-bottom: .2rem; color: var(--azul); }
+.cartao-login .formulario { box-shadow: none; padding: 0; margin-top: 1rem; }
+
+/* Versões da nota de uma ocorrência */
+.versoes-nota { margin-top: .3rem; font-size: .88rem; }
+.versoes-nota summary { cursor: pointer; color: var(--azul); font-weight: 700; }
+.versoes-nota ol { margin: .3rem 0 0; padding-left: 1.2rem; }
+.versoes-nota .quando { color: var(--suave); margin-right: .4rem; }
+
+/* Formulário do perfil de atenção */
+fieldset { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1rem; }
+fieldset + fieldset { margin-top: .8rem; }
+.formulario label .suave { font-weight: 400; }
+legend { font-size: 1.2rem; font-weight: 700; color: var(--azul); padding: 0; margin-bottom: .6rem; }
+.linha-campos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.linha-campos .larga { grid-column: span 2; }
+.caixas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem 1rem; }
+.rotulo-grupo { margin: 0; font-weight: 700; font-size: .98rem; }
+
+/* Funcionárias e acessos */
+.pin-novo { background: #fff; border-left: 8px solid var(--azul); border-radius: var(--raio); box-shadow: var(--sombra); padding: .8rem 1.2rem; margin: 0 0 1.2rem; }
+.pin-valor { font-size: 2.6rem; font-weight: 700; letter-spacing: .3em; color: var(--azul-escuro); margin: .2rem 0; font-variant-numeric: tabular-nums; }
+.pin-campo { width: 5.5rem; padding: .45rem .6rem; font: inherit; border: 1px solid #8a929c; border-radius: 10px; }
+.etiqueta-aviso { background: #ffe9d6; color: #7a2800; border: 1px solid #c23c00; }
+.alerta-info { background: #e3ecf4; border-left: 8px solid var(--azul); color: #0e2b4a; }

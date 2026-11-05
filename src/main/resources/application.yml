@@ -1,0 +1,59 @@
+server:
+  address: 0.0.0.0
+  port: 8080
+
+spring:
+  application:
+    name: gestao-lar
+  datasource:
+    url: jdbc:postgresql://localhost:5432/lar
+    username: lar
+    password: lar
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  flyway:
+    enabled: true
+  web:
+    locale: pt_PT
+    resources:
+      cache:
+        period: 0
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+  thymeleaf:
+    cache: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+lar:
+  nome: Lar de Idosos          # mostrado na barra superior do tablet (LAR_NOME)
+  fuso: Europe/Lisbon
+  # Horários fixos das tomas. Podem ser alterados por variável de ambiente (ex.: LAR_HORARIOS_MANHA=06:00).
+  horarios:
+    MANHA: "09:00"
+    ALMOCO: "13:00"
+    JANTAR: "19:00"
+    DEITAR: "22:00"
+  atraso-minutos: 60
+  ocorrencia-horas: 48
+  # Registos que exigem sessão de PIN (editável no /admin → Definições; o valor guardado lá prevalece).
+  # toma=true é obrigatório enquanto o painel de Medicação exigir sessão: com false continua a pedir PIN.
+  registo:
+    exige-sessao:
+      # O banho nunca exige sessão (regra fixa, não configurável); só ocorrências e medicação.
+      ocorrencia: true      # queda e dor
+      toma: true
+  sessao:
+    minutos: 2              # duração da sessão depois da última interação
+  demo:
+    password: demo1234

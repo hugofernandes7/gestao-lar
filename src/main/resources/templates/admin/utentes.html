@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-PT" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{admin/layout :: head('Utentes')}"></head>
+<body>
+<header th:replace="~{admin/layout :: topo(${menu})}"></header>
+<main class="conteudo">
+    <div th:replace="~{admin/layout :: mensagens}"></div>
+
+    <div class="barra">
+        <h1>Utentes</h1>
+        <span class="espaco"></span>
+        <a class="botao botao-claro" th:unless="${inativos}" href="/admin/utentes?inativos=true">Mostrar desativados</a>
+        <a class="botao botao-claro" th:if="${inativos}" href="/admin/utentes">Esconder desativados</a>
+        <a class="botao" href="/admin/utentes/novo">Novo utente</a>
+    </div>
+
+    <table class="tabela">
+        <thead><tr><th></th><th>Quarto</th><th>Nome</th><th>Estado</th><th class="acoes">Ações</th></tr></thead>
+        <tbody>
+        <tr th:each="u : ${utentes}" th:classappend="${!u.ativo} ? 'inativo'">
+            <td><img class="miniatura" th:src="@{/fotos/{id}(id=${u.id})}" alt=""></td>
+            <td th:text="${u.quarto}">1</td>
+            <td th:text="${u.nome}">Nome</td>
+            <td><span class="etiqueta" th:classappend="${u.ativo} ? 'etiqueta-ok' : 'etiqueta-off'"
+                      th:text="${u.ativo} ? 'Ativo' : 'Desativado'">Ativo</span></td>
+            <td class="acoes">
+                <a class="botao botao-claro" th:href="@{/admin/utentes/{id}/editar(id=${u.id})}">Editar</a>
+                <a class="botao botao-claro" th:href="@{/admin/utentes/{id}/perfil(id=${u.id})}">Perfil</a>
+                <a class="botao botao-claro" th:href="@{/admin/utentes/{id}/plano(id=${u.id})}">Plano de medicação</a>
+                <form th:action="@{/admin/utentes/{id}/ativo(id=${u.id})}" method="post" class="em-linha">
+                    <input type="hidden" name="ativo" th:value="${!u.ativo}">
+                    <button type="submit" class="botao botao-claro" th:text="${u.ativo} ? 'Desativar' : 'Reativar'">Desativar</button>
+                </form>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <section class="demo" th:if="${demo}">
+        <h2>Demonstração</h2>
+        <p class="suave">Apaga os registos e volta a gerar os 15 utentes e o histórico dos últimos 7 dias, relativos a agora.</p>
+        <form th:action="@{/admin/demo/repor}" method="post"
+              onsubmit="return confirm('Isto apaga todos os dados atuais e gera dados de demonstração novos. Continuar?');">
+            <button type="submit" class="botao botao-perigo">Repor dados de demonstração</button>
+        </form>
+    </section>
+</main>
+</body>
+</html>

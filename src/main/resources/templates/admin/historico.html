@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt-PT" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{admin/layout :: head('Histórico')}"></head>
+<body>
+<header th:replace="~{admin/layout :: topo(${menu})}"></header>
+<main class="conteudo">
+    <div th:replace="~{admin/layout :: mensagens}"></div>
+    <h1>Histórico de registos</h1>
+
+    <form class="filtros" method="get" action="/admin/historico">
+        <label>Utente
+            <select name="utente">
+                <option value="">Todos</option>
+                <option th:each="u : ${utentes}" th:value="${u.id}" th:selected="${u.id == utenteSel}"
+                        th:text="${u.quarto + ' — ' + u.nome + (u.ativo ? '' : ' (desativado)')}">1 — Nome</option>
+            </select>
+        </label>
+        <label>Dia
+            <input type="date" name="dia" th:value="${dia}">
+        </label>
+        <button type="submit" class="botao">Filtrar</button>
+    </form>
+
+    <p class="suave" th:if="${linhas.isEmpty()}">Sem registos neste dia.</p>
+    <table class="tabela" th:unless="${linhas.isEmpty()}">
+        <thead><tr><th>Hora</th><th>Utente</th><th>Tipo</th><th>Detalhe</th><th>Quem</th><th>Nota</th><th>Estado</th><th class="acoes"></th></tr></thead>
+        <tbody>
+        <tr th:each="l : ${linhas}" th:classappend="${l.anulado()} ? 'anulado'">
+            <td th:text="${l.hora()}">10:00</td>
+            <td th:text="${l.utente()}">Nome</td>
+            <td th:text="${l.tipo()}">Banho</td>
+            <td th:text="${l.descricao()}">—</td>
+            <td><span th:if="${l.quem() != null}" th:text="${l.quem()}">Ana (nº 1)</span><span class="suave" th:if="${l.quem() == null}">—</span></td>
+            <td>
+                <span th:text="${l.nota()}">—</span>
+                <!-- Todas as versões da nota (acrescentada, editada, removida), da mais antiga à mais recente -->
+                <details class="versoes-nota" th:if="${!l.versoesNota().isEmpty()}">
+                    <summary th:text="${'Versões da nota (' + l.versoesNota().size() + ')'}">Versões da nota (2)</summary>
+                    <ol>
+                        <li th:each="v : ${l.versoesNota()}">
+                            <span class="quando" th:text="${v.quando()}">03/11/2026 10:00</span>
+                            <span th:if="${v.texto() != null}" th:text="${v.texto()}">texto</span>
+                            <em th:if="${v.texto() == null}">(nota removida)</em>
+                        </li>
+                    </ol>
+                </details>
+            </td>
+            <td>
+                <span class="etiqueta etiqueta-ok" th:unless="${l.anulado()}">Válido</span>
+                <span th:if="${l.anulado()}" class="sem-risco">
+                    <span class="etiqueta etiqueta-off">Anulado</span><br>
+                    <span class="pequeno">por <strong th:text="${l.anuladoPor()}">Nome</strong>
+                        em <span th:text="${l.anuladoEm()}">01/10/2026 10:00</span></span>
+                </span>
+            </td>
+            <td class="acoes">
+                <form th:unless="${l.anulado()}" th:action="@{/admin/registos/{id}/anular(id=${l.id()})}" method="post" class="em-linha"
+                      onsubmit="return confirm('Anular este registo?');">
+                    <input type="hidden" name="dia" th:value="${dia}">
+                    <input type="hidden" name="utente" th:value="${utenteSel}" th:if="${utenteSel != null}">
+                    <button type="submit" class="botao botao-claro">Anular</button>
+                </form>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+</body>
+</html>

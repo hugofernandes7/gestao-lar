@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="pt-PT" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{admin/layout :: head('Entrar')}"></head>
+<body class="centrado">
+<main class="cartao-login">
+    <h1>Gestão do Lar</h1>
+    <p class="suave">Área reservada a enfermeiros e gerontólogos.</p>
+    <div class="alerta alerta-erro" th:if="${param.erro}" role="alert">Utilizador ou palavra-passe incorretos.</div>
+    <div class="alerta alerta-ok" th:if="${param.saiu}" role="status">Sessão terminada.</div>
+    <form th:action="@{/admin/login}" method="post" class="formulario">
+        <label>Utilizador
+            <input type="text" name="username" autofocus autocomplete="username" required>
+        </label>
+        <label>Palavra-passe
+            <input type="password" name="password" autocomplete="current-password" required>
+        </label>
+        <button type="submit" class="botao">Entrar</button>
+    </form>
+    <p class="suave pequeno"><a href="/tablet">Ir para a vista de tablet</a></p>
+</main>
+</body>
+</html>

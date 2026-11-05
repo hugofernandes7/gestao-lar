@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-PT" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0e2b4a">
+    <title>Lar — Entrar</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/png" href="/icons/icon-192.png">
+    <link rel="stylesheet" href="/css/tablet.css">
+</head>
+<body class="pagina-acesso">
+
+<!-- Entrada com número + PIN. Teclado próprio (o do Android nunca aparece): não há nenhum campo de texto. -->
+<main class="acesso" th:attr="data-ola=${ola != null} ? 'sim' : null">
+
+    <!-- Depois do PIN certo: só agora aparece o nome. -->
+    <section class="acesso-ola" th:if="${ola != null}" role="status">
+        <h1 th:text="${'Olá, ' + ola}">Olá, Ana</h1>
+        <a class="btn btn-continuar" id="continuar" th:href="${destino}">Continuar</a>
+    </section>
+
+    <th:block th:if="${ola == null}">
+        <section class="acesso-info">
+            <h1>Entrar</h1>
+            <p class="instrucao" id="instrucao" aria-live="polite">Escreva o seu número e toque em OK.</p>
+            <div class="visor" id="visor" role="status" aria-live="polite"
+                 data-vazio="Número" aria-label="Número"></div>
+            <p class="acesso-erro" role="alert" th:if="${erro != null}" th:text="${erro}">Número ou PIN incorreto</p>
+            <a class="btn btn-voltar" href="/tablet">Cancelar</a>
+        </section>
+
+        <form class="teclado" id="teclado" method="post" action="/tablet/acesso" aria-label="Teclado numérico">
+            <input type="hidden" name="numero" id="campo-numero">
+            <input type="hidden" name="pin" id="campo-pin">
+            <input type="hidden" name="utente" th:value="${utente}" th:if="${utente != null}">
+            <input type="hidden" name="painel" th:value="${painel}" th:if="${painel != null}">
+            <button type="button" class="tecla" data-tecla="1">1</button>
+            <button type="button" class="tecla" data-tecla="2">2</button>
+            <button type="button" class="tecla" data-tecla="3">3</button>
+            <button type="button" class="tecla" data-tecla="4">4</button>
+            <button type="button" class="tecla" data-tecla="5">5</button>
+            <button type="button" class="tecla" data-tecla="6">6</button>
+            <button type="button" class="tecla" data-tecla="7">7</button>
+            <button type="button" class="tecla" data-tecla="8">8</button>
+            <button type="button" class="tecla" data-tecla="9">9</button>
+            <button type="button" class="tecla tecla-apagar" data-tecla="apagar" aria-label="Apagar">
+                <th:block th:replace="~{tablet/icones :: ic('apagar')}"/>
+            </button>
+            <button type="button" class="tecla" data-tecla="0">0</button>
+            <button type="button" class="tecla tecla-ok" data-tecla="ok" id="tecla-ok">OK</button>
+        </form>
+    </th:block>
+</main>
+
+<script src="/js/acesso.js"></script>
+</body>
+</html>

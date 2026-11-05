@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-PT" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{admin/layout :: head('Funcionárias')}"></head>
+<body>
+<header th:replace="~{admin/layout :: topo(${menu})}"></header>
+<main class="conteudo">
+    <div th:replace="~{admin/layout :: mensagens}"></div>
+
+    <!-- PIN gerado: aparece só nesta página, uma única vez. -->
+    <section class="pin-novo" th:if="${pinNovo != null}" role="status">
+        <p>PIN de <strong th:text="${pinNovo.nome}">Ana</strong> (número <strong th:text="${pinNovo.numero}">1</strong>)</p>
+        <p class="pin-valor" th:text="${pinNovo.pin}">1234</p>
+        <p class="pequeno">Anote-o agora e entregue-o à funcionária: não volta a ser mostrado. Se se perder, reponha o PIN.</p>
+    </section>
+
+    <div class="barra">
+        <h1>Funcionárias</h1>
+        <span class="espaco"></span>
+        <a class="botao" href="/admin/funcionarios/nova">Nova funcionária</a>
+    </div>
+    <p class="suave">Entram no tablet com o número e um PIN de 4 dígitos. Os números nunca se reutilizam: para deixar de entrar, desative.</p>
+
+    <table class="tabela">
+        <thead><tr><th>Número</th><th>Nome</th><th>Estado</th><th class="acoes">Ações</th></tr></thead>
+        <tbody>
+        <tr th:each="f : ${funcionarias}" th:classappend="${!f.ativa} ? 'inativo'">
+            <td th:text="${f.numero}">1</td>
+            <td th:text="${f.nome}">Nome</td>
+            <td><span class="etiqueta" th:classappend="${f.ativa} ? 'etiqueta-ok' : 'etiqueta-off'"
+                      th:text="${f.ativa} ? 'Ativa' : 'Desativada'">Ativa</span></td>
+            <td class="acoes">
+                <a class="botao botao-claro" th:href="@{/admin/funcionarios/{id}/editar(id=${f.id})}">Editar</a>
+                <form th:action="@{/admin/funcionarios/{id}/pin(id=${f.id})}" method="post" class="em-linha" onsubmit="return confirm('Repor o PIN? O PIN atual deixa de funcionar.');">
+                    <input type="password" name="pin" class="pin-campo" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off"
+                           placeholder="gerar" th:attr="aria-label='Novo PIN de ' + ${f.nome} + ' (em branco: gerar um)'">
+                    <button type="submit" class="botao botao-claro">Repor PIN</button>
+                </form>
+                <form th:action="@{/admin/funcionarios/{id}/ativa(id=${f.id})}" method="post" class="em-linha">
+                    <input type="hidden" name="ativa" th:value="${!f.ativa}">
+                    <button type="submit" class="botao botao-claro" th:text="${f.ativa} ? 'Desativar' : 'Reativar'">Desativar</button>
+                </form>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+    <p class="suave" th:if="${funcionarias.isEmpty()}">Ainda não há funcionárias.</p>
+
+</main>
+</body>
+</html>

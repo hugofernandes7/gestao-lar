@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt-PT" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{admin/layout :: head(${planoId == null ? 'Adicionar medicamento' : 'Editar medicamento'})}"></head>
+<body>
+<header th:replace="~{admin/layout :: topo(${menu})}"></header>
+<main class="conteudo estreito">
+    <p class="migalhas"><a href="/admin/utentes">Utentes</a> ›
+        <a th:href="@{/admin/utentes/{id}/plano(id=${utente.id})}" th:text="${utente.nome}">Nome</a></p>
+    <h1 th:text="${planoId == null} ? 'Adicionar medicamento' : 'Editar medicamento'">Medicamento</h1>
+
+    <div class="alerta alerta-erro" th:if="${#fields.hasErrors('${form.*}')}" role="alert">
+        <div th:each="e : ${#fields.errors('${form.*}')}" th:text="${e}"></div>
+    </div>
+
+    <form class="formulario" method="post"
+          th:action="${planoId == null} ? @{/admin/utentes/{id}/plano(id=${utente.id})} : @{/admin/utentes/{id}/plano/{pid}(id=${utente.id},pid=${planoId})}">
+        <label>Medicamento
+            <input type="text" name="medicamento" th:value="${form.medicamento}" maxlength="120" required autofocus>
+        </label>
+        <label>Dose
+            <input type="text" name="dose" th:value="${form.dose}" maxlength="60" placeholder="ex.: 1 g, 20 mg, 1 comprimido" required>
+        </label>
+        <label>Horário
+            <select name="horario" required>
+                <option value="" th:if="${form.horario == null}">— escolher —</option>
+                <option th:each="h : ${horarios}" th:value="${h.name()}" th:selected="${h == form.horario}"
+                        th:text="${h.etiqueta + ' (' + horas[h] + ')'}">Manhã</option>
+            </select>
+        </label>
+        <label>Observações (inclui alergias)
+            <textarea name="observacoes" rows="3" maxlength="500" th:text="${form.observacoes}"></textarea>
+        </label>
+        <div class="barra">
+            <button type="submit" class="botao">Guardar</button>
+            <a class="botao botao-claro" th:href="@{/admin/utentes/{id}/plano(id=${utente.id})}">Cancelar</a>
+        </div>
+    </form>
+</main>
+</body>
+</html>

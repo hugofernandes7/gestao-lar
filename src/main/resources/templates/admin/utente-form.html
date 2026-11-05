@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-PT" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{admin/layout :: head(${utente == null ? 'Novo utente' : 'Editar utente'})}"></head>
+<body>
+<header th:replace="~{admin/layout :: topo(${menu})}"></header>
+<main class="conteudo estreito">
+    <h1 th:text="${utente == null} ? 'Novo utente' : 'Editar utente'">Utente</h1>
+
+    <div class="alerta alerta-erro" th:if="${#fields.hasErrors('${form.*}')}" role="alert">
+        <div th:each="e : ${#fields.errors('${form.*}')}" th:text="${e}"></div>
+    </div>
+
+    <form class="formulario" method="post" enctype="multipart/form-data"
+          th:action="${utente == null} ? @{/admin/utentes} : @{/admin/utentes/{id}(id=${utente.id})}">
+        <label>Nome
+            <input type="text" name="nome" th:value="${form.nome}" maxlength="120" required autofocus>
+        </label>
+        <label>Quarto
+            <input type="text" name="quarto" th:value="${form.quarto}" maxlength="10" required>
+        </label>
+
+        <div class="campo-foto">
+            <img class="foto-previa" th:if="${utente != null}" th:src="@{/fotos/{id}(id=${utente.id})}" alt="Foto atual">
+            <div>
+                <label>Foto (JPG ou PNG)
+                    <input type="file" name="foto" accept="image/png,image/jpeg">
+                </label>
+                <p class="suave pequeno">É recortada ao centro em quadrado. Sem foto, aparece um avatar com as iniciais.</p>
+                <label class="checkbox" th:if="${temFoto}">
+                    <input type="checkbox" name="removerFoto" value="true"> Remover a foto atual
+                </label>
+            </div>
+        </div>
+
+        <div class="barra">
+            <button type="submit" class="botao">Guardar</button>
+            <a class="botao botao-claro" href="/admin/utentes">Cancelar</a>
+        </div>
+    </form>
+</main>
+</body>
+</html>

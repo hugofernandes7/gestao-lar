@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="pt-PT" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{admin/layout :: head('Plano de medicação')}"></head>
+<body>
+<header th:replace="~{admin/layout :: topo(${menu})}"></header>
+<main class="conteudo">
+    <div th:replace="~{admin/layout :: mensagens}"></div>
+
+    <p class="migalhas"><a href="/admin/utentes">Utentes</a> › <span th:text="${utente.nome}">Nome</span></p>
+    <div class="barra">
+        <h1>Plano de medicação — <span th:text="${utente.nome}">Nome</span> <small>(quarto <span th:text="${utente.quarto}">1</span>)</small></h1>
+        <span class="espaco"></span>
+        <a class="botao" th:href="@{/admin/utentes/{id}/plano/novo(id=${utente.id})}">Adicionar medicamento</a>
+    </div>
+
+    <p class="suave" th:if="${linhas.isEmpty()}">Este utente não tem medicação prescrita.</p>
+    <table class="tabela" th:unless="${linhas.isEmpty()}">
+        <thead><tr><th>Horário</th><th>Medicamento</th><th>Dose</th><th>Observações / alergias</th><th>Última alteração</th><th class="acoes">Ações</th></tr></thead>
+        <tbody>
+        <tr th:each="p : ${linhas}">
+            <td><span th:text="${p.horario.etiqueta}">Manhã</span></td>
+            <td><strong th:text="${p.medicamento}">Paracetamol</strong></td>
+            <td th:text="${p.dose}">1 g</td>
+            <td th:text="${p.observacoes}">—</td>
+            <td class="suave pequeno">
+                <span th:text="${@fmt.dataHora(p.atualizadoEm)}">01/10/2026 10:00</span><br>
+                <span th:text="${p.atualizadoPor != null} ? ${p.atualizadoPor.nome} : '—'">Enfermeira</span>
+            </td>
+            <td class="acoes">
+                <a class="botao botao-claro" th:href="@{/admin/utentes/{id}/plano/{pid}/editar(id=${utente.id},pid=${p.id})}">Editar</a>
+                <form th:action="@{/admin/utentes/{id}/plano/{pid}/remover(id=${utente.id},pid=${p.id})}" method="post" class="em-linha"
+                      onsubmit="return confirm('Retirar este medicamento do plano?');">
+                    <button type="submit" class="botao botao-claro">Retirar</button>
+                </form>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <section>
+        <h2>Histórico de alterações</h2>
+        <p class="suave pequeno">Cada linha é uma versão do plano, da mais recente para a mais antiga.</p>
+        <p class="suave" th:if="${historico.isEmpty()}">Sem alterações registadas.</p>
+        <table class="tabela tabela-compacta" th:unless="${historico.isEmpty()}">
+            <thead><tr><th>Quando</th><th>Quem</th><th>Horário</th><th>Medicamento</th><th>Dose</th><th>Observações</th><th>Estado</th></tr></thead>
+            <tbody>
+            <tr th:each="v : ${historico}" th:classappend="${!v.ativo()} ? 'inativo'">
+                <td th:text="${@fmt.dataHora(v.quando())}">01/10/2026 10:00</td>
+                <td th:text="${v.quem()}">Enfermeira</td>
+                <td th:text="${v.horario()}">Manhã</td>
+                <td th:text="${v.medicamento()}">Paracetamol</td>
+                <td th:text="${v.dose()}">1 g</td>
+                <td th:text="${v.observacoes()}">—</td>
+                <td th:text="${v.ativo()} ? 'Em vigor' : 'Retirado'">Em vigor</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+</main>
+</body>
+</html>

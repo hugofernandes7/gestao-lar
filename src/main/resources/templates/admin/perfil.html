@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-PT" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{admin/layout :: head('Perfil de atenção')}"></head>
+<body>
+<header th:replace="~{admin/layout :: topo(${menu})}"></header>
+<main class="conteudo estreito">
+    <div th:replace="~{admin/layout :: mensagens}"></div>
+    <p class="migalhas"><a href="/admin/utentes">Utentes</a> › <span th:text="${utente.nome}">Nome</span></p>
+    <h1>Perfil de atenção <small th:text="${'Quarto ' + utente.quarto}">Quarto 1</small></h1>
+    <p class="suave" th:text="${revisto != null} ? ${revisto} : 'Ainda não preenchido: no tablet aparece «Perfil de atenção ainda por preencher».'">Revisto em…</p>
+
+    <div class="alerta alerta-erro" th:if="${#fields.hasErrors('${form.*}')}" role="alert">
+        <div th:each="e : ${#fields.errors('${form.*}')}" th:text="${e}"></div>
+    </div>
+
+    <form class="formulario" method="post" th:action="@{/admin/utentes/{id}/perfil(id=${utente.id})}">
+
+        <fieldset>
+            <legend>Atenção <span class="suave pequeno">(aparece sempre no topo da ficha, sem PIN)</span></legend>
+
+            <label>Alergias <span class="suave pequeno">(texto curto; deixar vazio se não houver)</span>
+                <input type="text" name="alergias" th:value="${form.alergias}" maxlength="200" placeholder="ex.: Penicilina, marisco">
+            </label>
+
+            <div class="linha-campos">
+                <label>Mobilidade
+                    <select name="mobilidade" required>
+                        <option th:each="m : ${mobilidades}" th:value="${m.name()}" th:text="${m.etiqueta}"
+                                th:selected="${m == form.mobilidade}">Autónomo</option>
+                    </select>
+                </label>
+                <label>Transferência
+                    <select name="transferencia">
+                        <option value="" th:selected="${form.transferencia == null}">Não se aplica</option>
+                        <option value="1" th:selected="${form.transferencia != null and form.transferencia == 1}">1 pessoa</option>
+                        <option value="2" th:selected="${form.transferencia != null and form.transferencia == 2}">2 pessoas</option>
+                    </select>
+                </label>
+                <label>Risco de queda
+                    <select name="riscoQueda" required>
+                        <option th:each="r : ${riscos}" th:value="${r.name()}" th:text="${r.etiqueta}"
+                                th:selected="${r == form.riscoQueda}">Baixo</option>
+                    </select>
+                </label>
+            </div>
+
+            <div class="linha-campos">
+                <label>Textura dos alimentos
+                    <select name="textura" required>
+                        <option th:each="t : ${texturas}" th:value="${t.name()}" th:text="${t.etiqueta}"
+                                th:selected="${t == form.textura}">Normal</option>
+                    </select>
+                </label>
+                <label class="larga">Dieta <span class="suave pequeno">(texto curto)</span>
+                    <input type="text" name="dieta" th:value="${form.dieta}" maxlength="120" placeholder="ex.: sem sal, diabética">
+                </label>
+            </div>
+            <label class="checkbox"><input type="checkbox" name="ajudaAComer" value="true" th:checked="${form.ajudaAComer}"> Precisa de ajuda a comer</label>
+
+            <p class="rotulo-grupo">Comunicação</p>
+            <div class="caixas">
+                <label class="checkbox"><input type="checkbox" name="ouveMalEsq" value="true" th:checked="${form.ouveMalEsq}"> Ouve mal (esq.)</label>
+                <label class="checkbox"><input type="checkbox" name="ouveMalDir" value="true" th:checked="${form.ouveMalDir}"> Ouve mal (dir.)</label>
+                <label class="checkbox"><input type="checkbox" name="usaOculos" value="true" th:checked="${form.usaOculos}"> Óculos</label>
+                <label class="checkbox"><input type="checkbox" name="proteseAuditiva" value="true" th:checked="${form.proteseAuditiva}"> Prótese auditiva</label>
+                <label class="checkbox"><input type="checkbox" name="proteseDentaria" value="true" th:checked="${form.proteseDentaria}"> Prótese dentária</label>
+                <label class="checkbox"><input type="checkbox" name="desorientado" value="true" th:checked="${form.desorientado}"> Desorientado</label>
+            </div>
+
+            <label>Avisos especiais <span class="suave pequeno">(texto curto, opcional)</span>
+                <input type="text" name="avisos" th:value="${form.avisos}" maxlength="200" placeholder="ex.: Não deixar sozinha na casa de banho">
+            </label>
+        </fieldset>
+
+        <fieldset>
+            <legend>Sobre mim <span class="suave pequeno">(separador só de leitura no tablet)</span></legend>
+            <label>Como gosta de ser tratado <span class="suave pequeno">(aparece também por baixo do nome)</span>
+                <input type="text" name="tratamento" th:value="${form.tratamento}" maxlength="200" placeholder="ex.: D. Maria; fala devagar e de frente">
+            </label>
+            <label>Gostos e temas de conversa
+                <textarea name="gostos" rows="5" maxlength="2000" th:text="${form.gostos}"></textarea>
+            </label>
+        </fieldset>
+
+        <div class="barra">
+            <button type="submit" class="botao">Guardar e marcar como revisto</button>
+            <a class="botao botao-claro" href="/admin/utentes">Voltar</a>
+        </div>
+    </form>
+
+    <section>
+        <h2>Histórico de alterações</h2>
+        <p class="suave pequeno">Cada gravação é uma versão, da mais recente para a mais antiga.</p>
+        <p class="suave" th:if="${historico.isEmpty()}">Sem alterações registadas.</p>
+        <table class="tabela tabela-compacta" th:unless="${historico.isEmpty()}">
+            <thead><tr><th>Quando</th><th>Quem</th><th>O que mudou</th></tr></thead>
+            <tbody>
+            <tr th:each="v : ${historico}">
+                <td th:text="${@fmt.dataHora(v.quando())}">01/10/2026 10:00</td>
+                <td th:text="${v.quem()}">Enfermeira</td>
+                <td><div th:each="a : ${v.alteracoes()}" th:text="${a}">Alergias: — → «Penicilina»</div></td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+</main>
+</body>
+</html>

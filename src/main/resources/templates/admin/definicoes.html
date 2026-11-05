@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-PT" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{admin/layout :: head('Definições')}"></head>
+<body>
+<header th:replace="~{admin/layout :: topo(${menu})}"></header>
+<main class="conteudo estreito">
+    <div th:replace="~{admin/layout :: mensagens}"></div>
+    <h1>Definições</h1>
+
+    <div class="alerta alerta-erro" th:if="${erro != null}" th:text="${erro}" role="alert"></div>
+
+    <form class="formulario" method="post" th:action="@{/admin/definicoes}">
+        <fieldset>
+            <legend>Registos que exigem sessão (número + PIN)</legend>
+            <p class="suave pequeno">Com a opção ligada, tocar no botão leva ao ecrã de acesso e, depois do PIN, volta ao mesmo
+                passo do mesmo utente. Não se regista nada automaticamente. «Desfazer» passa a ser só da funcionária que fez o registo. O banho nunca exige sessão: regista sempre sem login (e guarda quem foi só se já houver sessão).</p>
+            <label class="checkbox"><input type="checkbox" name="ocorrencia" value="true" th:checked="${v.ocorrencia()}"> Ocorrências (queda e dor)</label>
+            <label class="checkbox"><input type="checkbox" name="toma" value="true" th:checked="${v.toma()}" aria-describedby="nota-toma"> Medicação (toma)</label>
+            <p class="alerta alerta-info" id="nota-toma">
+                <strong>A medicação exige sempre sessão.</strong> O painel de Medicação pede número e PIN para abrir, por isso esta opção
+                tem de estar ligada e, mesmo que a desligue aqui, o painel continua a pedir PIN
+                <span th:unless="${v.toma()}">(neste momento está desligada, sem efeito)</span>.
+            </p>
+        </fieldset>
+
+        <fieldset>
+            <legend>Sessão</legend>
+            <label>Duração da sessão, em minutos depois da última interação
+                <input type="number" name="minutos" th:value="${v.minutos() > 0 ? v.minutos() : ''}" th:min="${minMin}" th:max="${minMax}" step="1" required>
+            </label>
+            <p class="suave pequeno">Entre <span th:text="${minMin}">1</span> e <span th:text="${minMax}">60</span> minutos.
+                O refresco da grelha e o regresso automático à grelha não contam como interação.</p>
+        </fieldset>
+
+        <div class="barra"><button type="submit" class="botao">Guardar</button></div>
+    </form>
+
+    <h2>Alterações</h2>
+    <p class="suave" th:if="${historico.isEmpty()}">Ainda não houve alterações (valem os valores do application.yml).</p>
+    <table class="tabela tabela-compacta" th:unless="${historico.isEmpty()}">
+        <thead><tr><th>Quando</th><th>Quem</th><th>Alteração</th></tr></thead>
+        <tbody>
+        <tr th:each="h : ${historico}">
+            <td th:text="${h.quando()}">03/11/2026 10:00</td>
+            <td th:text="${h.quem()}">Enfermeira</td>
+            <td th:text="${h.texto()}">Exige sessão — Banho: não → sim</td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+</body>
+</html>

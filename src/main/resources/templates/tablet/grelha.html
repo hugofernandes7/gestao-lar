@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-PT" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0e2b4a">
+    <title>Lar — Utentes</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/png" href="/icons/icon-192.png">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+    <link rel="stylesheet" href="/css/tablet.css">
+    <script src="/js/htmx.min.js"></script>
+</head>
+<body class="pagina-grelha">
+
+<!-- Atualiza-se sozinho de 60 em 60 s (htmx). -->
+<div th:fragment="painel" id="painel" hx-get="/tablet/grelha" hx-trigger="every 60s" hx-swap="outerHTML">
+    <header class="topo">
+        <div class="marca">
+            <th:block th:replace="~{tablet/icones :: ic('casa')}"/>
+            <span th:text="${@fmt.nomeDoLar()}">Lar de Idosos</span>
+        </div>
+        <div class="data" th:text="${@fmt.diaPorExtenso()}">Terça-feira, 3 de novembro</div>
+        <div class="topo-dir">
+            <div class="sessao" th:if="${sessao != null}">
+                <span class="sessao-nome" th:text="${sessao.primeiroNome()}">Ana</span>
+                <form method="post" action="/tablet/acesso/sair" class="sessao-sair">
+                    <button type="submit" class="btn btn-sair"><th:block th:replace="~{tablet/icones :: ic('sair')}"/> Sair</button>
+                </form>
+            </div>
+            <a class="btn btn-entrar" href="/tablet/acesso" th:if="${sessao == null}">Entrar</a>
+            <div class="hora" th:text="${@fmt.horaAgora()}">10:00</div>
+        </div>
+    </header>
+    <main class="grelha">
+        <a th:each="c : ${cartoes}" class="cartao"
+           th:classappend="${c.ocorrencia()} ? 'tem-ocorrencia' : (${c.atraso()} ? 'tem-atraso' : '')"
+           th:href="@{/tablet/utentes/{id}(id=${c.utente().id})}">
+            <div class="foto">
+                <img th:src="@{/fotos/{id}(id=${c.utente().id})}" alt="">
+                <div class="faixa" th:if="${c.ocorrencia()}"><th:block th:replace="~{tablet/icones :: ic('queda')}"/> Ocorrência</div>
+                <div class="selo" th:if="${c.atraso()}"><th:block th:replace="~{tablet/icones :: ic('relogio')}"/> Medicação em atraso</div>
+            </div>
+            <div class="linha-nome">
+                <span class="nome" th:text="${@fmt.nomeCurto(c.utente().nome)}">Nome</span>
+                <span class="quarto" th:text="${c.utente().quarto}">1</span>
+            </div>
+        </a>
+    </main>
+</div>
+
+<script src="/js/tablet.js"></script>
+</body>
+</html>

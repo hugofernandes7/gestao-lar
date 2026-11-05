@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="pt-PT" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <!-- interactive-widget: com o teclado do Android aberto, a página encolhe em vez de ficar tapada. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
+    <meta name="theme-color" content="#0e2b4a">
+    <title>Lar — Ficha</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/png" href="/icons/icon-192.png">
+    <link rel="stylesheet" href="/css/tablet.css">
+    <script src="/js/htmx.min.js"></script>
+</head>
+<body class="pagina-ficha" data-voltar="/tablet">
+
+<!-- Duas colunas (ecrã horizontal): à esquerda quem é o utente e o que merece atenção (rola sozinha, se for longa);
+     à direita o que se faz: separadores, botões de registo (sempre visíveis), confirmação, painéis e "Hoje". -->
+<div th:fragment="conteudo" id="ficha" hx-target="#ficha" hx-swap="outerHTML" hx-disabled-elt="this"
+     th:with="u=${f.utente()}, base=@{/tablet/utentes/{id}(id=${f.utente().id})}">
+
+    <!-- ===================== Coluna esquerda ===================== -->
+    <div class="col-esq" tabindex="0" role="region" aria-label="Utente e atenção">
+
+        <header class="ficha-topo">
+            <img class="ficha-foto" th:src="@{/fotos/{id}(id=${u.id})}" alt="">
+            <div class="ficha-id">
+                <h1 th:text="${u.nome}">Nome</h1>
+                <p>Quarto <span th:text="${u.quarto}">1</span></p>
+                <!-- Como gosta de ser tratado (do separador "Sobre mim") -->
+                <p class="ficha-trato" th:if="${f.sobre().tratamento() != null}">
+                    <th:block th:replace="~{tablet/icones :: ic('conversa')}"/>
+                    <span th:text="${f.sobre().tratamento()}">Gosta de ser tratada por D. Maria</span>
+                </p>
+            </div>
+        </header>
+
+        <!-- Avisos de ocorrência (últimas 48 h) -->
+        <div class="aviso" role="alert" th:each="a : ${f.avisos()}">
+            <th:block th:replace="~{tablet/icones :: ic('queda')}"/>
+            <span th:text="${a.texto()}">Queda há 5 h — com lesão</span>
+        </div>
+
+        <!-- Bloco "Atenção": sempre visível (sem PIN). Alergias e avisos usam contorno escuro + ícone próprio;
+             o vermelho continua reservado às ocorrências. -->
+        <section class="atencao" aria-label="Atenção" th:with="a=${f.atencao()}">
+            <h2 class="atencao-titulo">Atenção</h2>
+
+            <p class="atencao-vazio" th:unless="${a.preenchido()}">
+                <th:block th:replace="~{tablet/icones :: ic('info')}"/>
+                Perfil de atenção ainda por preencher. Peça à enfermagem.
+            </p>
+
+            <div class="atencao-grelha" th:if="${a.preenchido()}">
+                <div class="cel cuidado cel-alergia" th:if="${a.alergias() != null}">
+                    <th:block th:replace="~{tablet/icones :: ic('alergia')}"/>
+                    <span class="cel-texto"><span class="rotulo">Alergias</span><strong th:text="${a.alergias()}">Penicilina</strong></span>
+                </div>
+                <div class="cel" th:if="${a.alergias() == null}">
+                    <th:block th:replace="~{tablet/icones :: ic('alergia')}"/>
+                    <span class="cel-texto"><span class="rotulo">Alergias</span><strong class="normal">Sem alergias registadas</strong></span>
+                </div>
+
+                <div class="cel cel-meia">
+                    <th:block th:replace="~{tablet/icones :: ic('pessoa')}"/>
+                    <span class="cel-texto">
+                        <span class="rotulo">Mobilidade</span>
+                        <strong th:text="${a.mobilidade()}">Andarilho</strong>
+                        <span th:if="${a.transferencia() != null}" th:text="${'Transferência: ' + a.transferencia()}">Transferência: 2 pessoas</span>
+                    </span>
+                </div>
+
+                <div class="cel cel-meia">
+                    <th:block th:replace="~{tablet/icones :: ic('risco')}"/>
+                    <span class="cel-texto">
+                        <span class="rotulo">Risco de queda</span>
+                        <strong class="risco" th:classappend="${'risco-' + a.riscoClasse()}" th:text="${a.risco().etiqueta}">Alto</strong>
+                    </span>
+                </div>
+
+                <div class="cel">
+                    <th:block th:replace="~{tablet/icones :: ic('comida')}"/>
+                    <span class="cel-texto">
+                        <span class="rotulo">Alimentação</span>
+                        <strong th:text="${'Textura ' + a.textura().toLowerCase()}">Textura mole</strong>
+                        <span th:if="${a.dieta() != null}" th:text="${'Dieta: ' + a.dieta()}">Dieta: sem sal</span>
+                        <strong th:if="${a.ajudaAComer()}">Precisa de ajuda a comer</strong>
+                    </span>
+                </div>
+
+                <div class="cel">
+                    <th:block th:replace="~{tablet/icones :: ic('ouvido')}"/>
+                    <span class="cel-texto">
+                        <span class="rotulo">Comunicação</span>
+                        <span class="chips" th:unless="${a.comunicacao().isEmpty()}">
+                            <span class="chip" th:each="c : ${a.comunicacao()}">
+                                <th:block th:replace="~{tablet/icones :: ic(${c.icone()})}"/>
+                                <span th:text="${c.texto()}">Óculos</span>
+                            </span>
+                        </span>
+                        <strong class="normal" th:if="${a.comunicacao().isEmpty()}">Sem necessidades especiais</strong>
+                    </span>
+                </div>
+
+                <div class="cel cuidado cel-aviso" th:each="av : ${a.avisos()}">
+                    <th:block th:replace="~{tablet/icones :: ic('info')}"/>
+                    <span class="cel-texto"><span class="rotulo">Aviso</span><strong th:text="${av}">Aviso especial</strong></span>
+                </div>
+            </div>
+
+            <p class="revisto" th:if="${a.preenchido()}" th:text="${a.revisto()}">Revisto em 01/11 por Enfermeira</p>
+        </section>
+    </div>
+
+    <!-- ===================== Coluna direita ===================== -->
+    <div class="col-dir">
+
+        <div class="dir-topo">
+            <nav class="abas" aria-label="Separadores da ficha">
+                <button type="button" class="aba" th:classappend="${f.aba().name() == 'REGISTOS'} ? 'ativa'"
+                        th:attr="aria-current=${f.aba().name() == 'REGISTOS'} ? 'page' : null"
+                        th:hx-get="@{${base} + '?aba=registos'}">Registos</button>
+                <button type="button" class="aba" th:classappend="${f.aba().name() == 'SOBRE'} ? 'ativa'"
+                        th:attr="aria-current=${f.aba().name() == 'SOBRE'} ? 'page' : null"
+                        th:hx-get="@{${base} + '?aba=sobre'}">Sobre mim</button>
+            </nav>
+            <form class="sessao" method="post" action="/tablet/acesso/sair" th:if="${sessao != null}">
+                <input type="hidden" name="utente" th:value="${u.id}">
+                <span class="sessao-nome" th:text="${sessao.primeiroNome()}">Ana</span>
+                <button type="submit" class="btn btn-sair"><th:block th:replace="~{tablet/icones :: ic('sair')}"/> Sair</button>
+            </form>
+            <a class="btn btn-voltar" href="/tablet">
+                <th:block th:replace="~{tablet/icones :: ic('voltar')}"/> Voltar
+            </a>
+        </div>
+
+        <!-- Confirmação + Desfazer (10 s) -->
+        <div class="mensagem" th:if="${f.mensagem() != null}" th:classappend="${f.mensagem().aviso()} ? 'mensagem-info' : ''">
+            <span class="mensagem-texto">
+                <th:block th:unless="${f.mensagem().aviso()}"><th:block th:replace="~{tablet/icones :: ic('ok')}"/></th:block>
+                <span th:text="${f.mensagem().texto()}">Banho registado às 10:32</span>
+            </span>
+            <span class="temporario" th:if="${f.mensagem().registoId() != null}">
+                <button type="button" class="btn btn-secundario"
+                        th:if="${f.mensagem().permiteNota()}"
+                        th:hx-get="@{${base} + '/registos/' + ${f.mensagem().registoId()} + '/nota'}">
+                    <th:block th:replace="~{tablet/icones :: ic('nota')}"/> Adicionar nota
+                </button>
+                <button type="button" class="btn btn-desfazer"
+                        th:hx-post="@{${base} + '/registos/' + ${f.mensagem().registoId()} + '/desfazer?painel=' + ${f.mensagem().painelRetorno()}}">
+                    <th:block th:replace="~{tablet/icones :: ic('desfazer')}"/> Desfazer
+                </button>
+            </span>
+        </div>
+
+        <!-- Botões de ação: sempre visíveis (fora da zona que rola). -->
+        <!-- (escondidos enquanto se escreve uma nota: sobra espaço para o teclado do tablet) -->
+        <div class="botoes" th:if="${f.aba().name() == 'REGISTOS' and f.painel().name() != 'NOTA'}">
+            <div class="btn btn-acao btn-feito" th:if="${f.banho() != null}">
+                <th:block th:replace="~{tablet/icones :: ic('ok')}"/>
+                <span>Banho feito às <span th:text="${@fmt.hora(f.banho().dataHora)}">10:00</span></span>
+            </div>
+            <button type="button" class="btn btn-acao" th:if="${f.banho() == null}" th:hx-post="@{${base} + '/banho'}">
+                <th:block th:replace="~{tablet/icones :: ic('banho')}"/> <span>Banho</span>
+            </button>
+
+            <button type="button" class="btn btn-acao" th:classappend="${f.painel().name() == 'QUEDA'} ? 'ativo'"
+                    th:hx-get="@{${base} + '?painel=queda'}">
+                <th:block th:replace="~{tablet/icones :: ic('queda')}"/> <span>Queda</span>
+            </button>
+            <button type="button" class="btn btn-acao" th:classappend="${f.painel().name() == 'DOR'} ? 'ativo'"
+                    th:hx-get="@{${base} + '?painel=dor'}">
+                <th:block th:replace="~{tablet/icones :: ic('dor')}"/> <span>Dor / mal-estar</span>
+            </button>
+            <button type="button" class="btn btn-acao" th:classappend="${f.painel().name() == 'MEDICACAO'} ? 'ativo'"
+                    th:hx-get="@{${base} + '?painel=medicacao'}">
+                <th:block th:replace="~{tablet/icones :: ic('medicacao')}"/> <span>Medicação</span>
+            </button>
+        </div>
+
+        <!-- Zona que rola (se for preciso): painéis, "Hoje" ou "Sobre mim". -->
+        <div class="dir-rolagem" tabindex="0" role="region" aria-label="Detalhe">
+
+            <!-- Separador "Sobre mim" (só leitura) -->
+            <section class="sobre" th:if="${f.aba().name() == 'SOBRE'}">
+                <div class="sobre-bloco">
+                    <h2>Como gosta de ser tratado</h2>
+                    <p th:if="${f.sobre().tratamento() != null}" th:text="${f.sobre().tratamento()}">D. Maria, com voz calma.</p>
+                    <p class="vazio" th:if="${f.sobre().tratamento() == null}">Ainda sem informação.</p>
+                </div>
+                <div class="sobre-bloco">
+                    <h2>Gostos e temas de conversa</h2>
+                    <p class="texto-livre" th:if="${f.sobre().gostos() != null}" th:text="${f.sobre().gostos()}">Gosta de música.</p>
+                    <p class="vazio" th:if="${f.sobre().gostos() == null}">Ainda sem informação.</p>
+                </div>
+            </section>
+
+            <th:block th:if="${f.aba().name() == 'REGISTOS'}">
+
+                <!-- Painel: Queda -->
+                <div class="painel" th:if="${f.painel().name() == 'QUEDA'}">
+                    <h2>Queda — houve lesão?</h2>
+                    <div class="opcoes">
+                        <button type="button" class="btn btn-opcao" th:hx-post="@{${base} + '/queda?lesao=false'}">Sem lesão</button>
+                        <button type="button" class="btn btn-opcao btn-opcao-perigo" th:hx-post="@{${base} + '/queda?lesao=true'}">Com lesão</button>
+                    </div>
+                    <button type="button" class="btn btn-secundario" th:hx-get="@{${base}}">Cancelar</button>
+                </div>
+
+                <!-- Painel: Dor / mal-estar -->
+                <div class="painel" th:if="${f.painel().name() == 'DOR'}">
+                    <h2>Dor / mal-estar — onde?</h2>
+                    <div class="opcoes opcoes-3">
+                        <button type="button" class="btn btn-opcao" th:each="l : ${f.locaisDor()}"
+                                th:hx-post="@{${base} + '/dor?local=' + ${l.name()}}" th:text="${l.etiqueta}">Cabeça</button>
+                    </div>
+                    <button type="button" class="btn btn-secundario" th:hx-get="@{${base}}">Cancelar</button>
+                </div>
+
+                <!-- Painel: Nota (opcional, depois de uma queda/dor) -->
+                <!-- Não faz parte da confirmação com Desfazer: não desaparece ao fim de 10 s. -->
+                <div class="painel painel-nota" th:if="${f.painel().name() == 'NOTA'}">
+                    <h2>Nota (opcional)</h2>
+                    <form th:hx-post="@{${base} + '/registos/' + ${f.registoNota()} + '/nota'}">
+                        <textarea name="nota" rows="6" maxlength="500" autofocus data-foco
+                                  aria-label="Nota" placeholder="Escreva aqui, se quiser…"
+                                  th:text="${f.notaAtual()}"></textarea>
+                        <div class="opcoes">
+                            <button type="submit" class="btn btn-opcao">Guardar</button>
+                            <button type="button" class="btn btn-opcao btn-opcao-neutro" th:hx-get="@{${base}}">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Painel: Medicação de hoje -->
+                <div class="painel painel-medicacao" th:if="${f.painel().name() == 'MEDICACAO'}">
+                    <h2>Medicação de hoje</h2>
+                    <p class="vazio" th:if="${f.grupos().isEmpty()}">Sem medicação prescrita.</p>
+                    <div class="grupo" th:each="g : ${f.grupos()}">
+                        <h3><span th:text="${g.horario().etiqueta}">Manhã</span> <small th:text="${g.hora()}">09:00</small></h3>
+                        <div class="toma" th:each="t : ${g.linhas()}"
+                             th:classappend="${t.atraso()} ? 'toma-atraso' : (${t.dada()} ? 'toma-dada' : 'toma-pendente')">
+                            <div class="toma-info">
+                                <strong th:text="${t.plano().medicamento}">Paracetamol</strong>
+                                <span th:text="${t.plano().dose}">1 g</span>
+                                <em class="obs" th:if="${t.plano().observacoes != null}" th:text="${t.plano().observacoes}">obs</em>
+                            </div>
+                            <div class="toma-estado">
+                                <span class="etiqueta-atraso" th:if="${t.atraso()}"><th:block th:replace="~{tablet/icones :: ic('relogio')}"/> Em atraso</span>
+                                <span class="pendente" th:if="${!t.dada() and !t.atraso()}"><th:block th:replace="~{tablet/icones :: ic('pendente')}"/> Por dar</span>
+                                <span class="feito" th:if="${t.dada()}">
+                                    <th:block th:replace="~{tablet/icones :: ic('ok')}"/> Dado às <span th:text="${t.horaDada()}">09:10</span>
+                                </span>
+                                <button type="button" class="btn btn-dado" th:unless="${t.dada()}"
+                                        th:hx-post="@{${base} + '/tomas/' + ${t.plano().id}}">Dado</button>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="rodape-plano" th:text="${f.planoAtualizado()}">Plano atualizado em 01/10 por Enfermeira</p>
+                </div>
+
+                <!-- Hoje -->
+                <section class="hoje" aria-label="Hoje">
+                    <h2>Hoje</h2>
+                    <p class="vazio" th:if="${f.hoje().isEmpty()}">Ainda sem registos.</p>
+                    <ul>
+                        <li th:each="h : ${f.hoje()}">
+                            <span class="hora" th:text="${h.hora()}">10:32</span>
+                            <span class="hoje-texto">
+                                <span th:text="${h.texto()}">Banho</span>
+                                <em class="obs" th:if="${h.nota() != null}" th:text="${h.nota()}">nota</em>
+                                <!-- Quedas e dores: nota pode ser acrescentada/editada a qualquer momento -->
+                                <button type="button" class="btn btn-secundario btn-nota" th:if="${h.ocorrencia()}"
+                                        th:hx-get="@{${base} + '/registos/' + ${h.registoId()} + '/nota'}">
+                                    <th:block th:replace="~{tablet/icones :: ic('nota')}"/>
+                                    <span th:text="${h.nota() == null} ? 'Nota' : 'Editar nota'">Nota</span>
+                                </button>
+                            </span>
+                        </li>
+                    </ul>
+                </section>
+            </th:block>
+        </div>
+    </div>
+</div>
+
+<script src="/js/tablet.js"></script>
+</body>
+</html>

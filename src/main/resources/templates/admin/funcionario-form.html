@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt-PT" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{admin/layout :: head(${funcionaria == null ? 'Nova funcionária' : 'Editar funcionária'})}"></head>
+<body>
+<header th:replace="~{admin/layout :: topo(${menu})}"></header>
+<main class="conteudo estreito">
+    <h1 th:text="${funcionaria == null} ? 'Nova funcionária' : 'Editar funcionária'">Funcionária</h1>
+
+    <div class="alerta alerta-erro" th:if="${erro != null}" th:text="${erro}" role="alert"></div>
+
+    <form class="formulario" method="post"
+          th:action="${funcionaria == null} ? @{/admin/funcionarios} : @{/admin/funcionarios/{id}(id=${funcionaria.id})}">
+        <label>Número <span class="suave" th:if="${funcionaria == null}">(proposto: o seguinte ao maior já usado; pode alterar)</span>
+            <input type="text" name="numero" th:value="${numero}" inputmode="numeric" pattern="[1-9][0-9]{0,3}"
+                   maxlength="4" th:readonly="${funcionaria != null}" required>
+        </label>
+        <p class="suave pequeno" th:if="${funcionaria != null}">O número é permanente e não se pode alterar.</p>
+        <label>Nome
+            <input type="text" name="nome" th:value="${nome}" maxlength="120" required autofocus>
+        </label>
+        <label th:if="${funcionaria == null}">PIN (4 dígitos) <span class="suave">— deixe em branco para gerar um</span>
+            <input type="password" name="pin" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off">
+        </label>
+
+        <div class="barra">
+            <button type="submit" class="botao">Guardar</button>
+            <a class="botao botao-claro" href="/admin/funcionarios">Cancelar</a>
+        </div>
+    </form>
+</main>
+</body>
+</html>
