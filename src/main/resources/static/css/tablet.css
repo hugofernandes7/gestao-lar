@@ -346,3 +346,36 @@ button.btn-feito { cursor: pointer; }
 .visor-num:not(:empty)::after { content: " kg"; font-size: 1.3rem; font-weight: 400; margin-left: .4rem; letter-spacing: 0; }
 .teclado-num { display: grid; grid-template-columns: repeat(3, 5.2rem); grid-auto-rows: 4.4rem; gap: .5rem; }
 .teclado-num .tecla { font-size: 1.8rem; }
+
+/* ---- Vigilância pós-queda (Etapa 9) ---- */
+.aviso-vigilancia {
+    display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; padding: .5rem .9rem;
+    background: #fff; color: var(--texto); border: 3px solid var(--azul); border-radius: var(--raio); box-shadow: var(--sombra);
+    font-size: 1.25rem; font-weight: 700;
+}
+.aviso-vigilancia .ic { flex: none; width: 2rem; height: 2rem; color: var(--azul); }
+.aviso-vigilancia .vig-texto { flex: 1 1 10rem; display: flex; flex-direction: column; line-height: 1.2; }
+.aviso-vigilancia.em-atraso { border-color: var(--laranja); background: #fdeadf; }
+.aviso-vigilancia.em-atraso .ic { color: var(--laranja); }
+.vig-atraso { color: #8f2c00; font-size: 1.05rem; text-transform: uppercase; letter-spacing: .03em; }
+.btn-fazer { min-height: 4.75rem; padding: 0 1.6rem; font-size: 1.3rem; }
+
+.painel-vigilancia h2 small { font-size: 1.05rem; font-weight: 400; color: var(--cinza); margin-left: .4rem; }
+.pergunta { margin-bottom: .7rem; }
+.pergunta-texto { font-size: 1.25rem; font-weight: 700; margin: 0 0 .35rem; }
+.pergunta-opcoes { display: flex; gap: .6rem; }
+.pergunta-opcoes .btn-resp { flex: 1 1 0; min-height: 4.75rem; font-size: 1.25rem; background: #fff; color: var(--azul); border: 3px solid var(--azul); box-shadow: none; }
+.pergunta-opcoes .btn-resp.resp-ativa { background: var(--azul); color: #fff; }
+.painel-alerta-vigilancia {
+    display: flex; align-items: center; gap: 1rem; background: var(--vermelho); color: #fff; border: 4px solid #fff;
+    outline: 4px solid var(--vermelho);
+}
+.painel-alerta-vigilancia .ic { flex: none; width: 3.4rem; height: 3.4rem; }
+.painel-alerta-vigilancia > div { flex: 1; }
+.painel-alerta-vigilancia h2 { color: #fff; font-size: 1.8rem; margin: 0; }
+.painel-alerta-vigilancia p { margin: .2rem 0 0; font-size: 1.15rem; }
+.painel-alerta-vigilancia .btn-opcao { background: #fff; color: var(--vermelho); min-width: 10rem; }
+
+/* Selos da grelha: medicação em atraso e vigilância em atraso podem aparecer juntos */
+.selos { position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; }
+.selos .selo { position: static; }

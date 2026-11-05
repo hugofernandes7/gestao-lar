@@ -203,6 +203,45 @@ class CapturasEsteticasTest extends BaseVisualTest {
         guardar(pasta, "13-admin-definicoes-sessao", true);
     }
 
+    /** Etapa 9: vigilância pós-queda (aviso, perguntas, alerta, selo laranja da grelha, histórico no admin). */
+    @Test
+    void capturarEtapa9() throws Exception {
+        Path pasta = Path.of("screenshots", "etapa9");
+        Files.createDirectories(pasta);
+        String q4 = "/tablet/utentes/" + quarto4.getId();
+
+        pagina.navigate(url(q4));
+        pagina.waitForSelector(".aviso-vigilancia");
+        guardar(pasta, "01-ficha-aviso-vigilancia", false);
+
+        iniciarSessao(1, "1111");
+        pagina.navigate(url(q4 + "?painel=vigilancia"));
+        pagina.waitForSelector(".painel-vigilancia");
+        guardar(pasta, "02-vigilancia-sem-respostas-guardar-desativado", false);
+        pagina.locator("[data-pergunta='consciente'] .btn-resp:has-text('Sim')").click();
+        pagina.locator("[data-pergunta='dor'] .btn-resp:has-text('Moderada')").click();
+        guardar(pasta, "03-vigilancia-duas-respostas-guardar-ainda-desativado", false);
+        pagina.locator("[data-pergunta='move'] .btn-resp:has-text('Com dificuldade')").click();
+        guardar(pasta, "04-vigilancia-tres-respostas-guardar-ativo", false);
+        pagina.locator("[data-guardar]").click();
+        pagina.waitForSelector(".painel-alerta-vigilancia");
+        guardar(pasta, "05-vigilancia-avisar-a-enfermagem-agora", false);
+
+        relogio.definir("2026-11-04T11:30:00");
+        pagina.navigate(url("/tablet"));
+        pagina.waitForSelector(".selo-vigilancia");
+        guardar(pasta, "06-grelha-selo-vigilancia-em-atraso", false);
+        pagina.navigate(url(q4));
+        pagina.waitForSelector(".aviso-vigilancia.em-atraso");
+        guardar(pasta, "07-ficha-vigilancia-em-atraso", false);
+
+        entrarNoAdmin();
+        pagina.navigate(url("/admin/historico?dia=2026-11-03&utente=" + quarto4.getId()));
+        guardar(pasta, "08-admin-historico-vigilancia", true);
+        pagina.navigate(url("/admin/historico?dia=2026-11-03&tipo=VIGILANCIA"));
+        guardar(pasta, "09-admin-filtro-vigilancia", true);
+    }
+
     private void entrarNoAdminDe(Path pasta) throws Exception {
         entrarNoAdmin();
         pagina.navigate(url("/admin/protocolos"));

@@ -154,6 +154,34 @@ class AcessibilidadeUiTest extends BaseVisualTest {
     }
 
     @Test
+    void vigilanciaAcessibilidade() throws Exception {
+        pagina.navigate(url("/tablet/utentes/" + quarto4.getId()));
+        pagina.waitForSelector(".aviso-vigilancia");
+        verificar("ficha: aviso de vigilância pós-queda");
+        iniciarSessao(1, "1111");
+        pagina.navigate(url("/tablet/utentes/" + quarto4.getId() + "?painel=vigilancia"));
+        pagina.waitForSelector(".painel-vigilancia");
+        verificar("ficha: vigilância, nada respondido");
+        tocar(pagina.locator("[data-pergunta='consciente'] .btn-resp", new com.microsoft.playwright.Page.LocatorOptions().setHasText("Sim")));
+        tocar(pagina.locator("[data-pergunta='dor'] .btn-resp", new com.microsoft.playwright.Page.LocatorOptions().setHasText("Forte")));
+        tocar(pagina.locator("[data-pergunta='move'] .btn-resp", new com.microsoft.playwright.Page.LocatorOptions().setHasText("Sim")));
+        verificar("ficha: vigilância, respostas escolhidas");
+        tocar(pagina.locator("[data-guardar]"));
+        pagina.waitForSelector(".painel-alerta-vigilancia");
+        verificar("ficha: avisar a enfermagem agora");
+        relogio.definir("2026-11-04T11:30:00");                      // a 4.ª (04/11 10:30) está em atraso desde as 11:00
+        pagina.navigate(url("/tablet"));
+        pagina.waitForSelector(".selo-vigilancia");
+        verificar("grelha: selo de vigilância em atraso");
+        pagina.navigate(url("/tablet/utentes/" + quarto4.getId()));
+        pagina.waitForSelector(".aviso-vigilancia.em-atraso");
+        verificar("ficha: aviso de vigilância em atraso");
+        entrarNoAdmin();
+        pagina.navigate(url("/admin/historico?dia=2026-11-03&utente=" + quarto4.getId()));
+        verificar("admin: histórico com vigilâncias");
+    }
+
+    @Test
     void refeicaoEPesoAcessibilidade() throws Exception {
         pagina.navigate(url("/tablet/utentes/" + quarto1.getId() + "?painel=refeicao"));
         pagina.waitForSelector(".painel-refeicao");

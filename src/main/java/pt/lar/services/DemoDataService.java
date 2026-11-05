@@ -88,13 +88,21 @@ public class DemoDataService {
     private final UtenteCondicaoRepository condicoes;
     private final AcessoSaudeRepository acessosSaude;
     private final pt.lar.repositories.PesoRepository pesos;
+    private final VigilanciaService vigilancia;
+    private final pt.lar.repositories.VigilanciaRepository verificacoes;
+    private final pt.lar.repositories.VigilanciaPlanoRepository planosVigilancia;
 
     public DemoDataService(UtenteRepository utentes, UtilizadorGestaoRepository utilizadores,
                            MedicacaoPlanoRepository planos, MedicacaoPlanoAuditoriaRepository auditoria,
                            RegistoRepository registos, RegistoNotaHistoricoRepository notas, Clock clock, LarProperties props,
                            PerfilService perfis, FuncionarioRepository funcionarios,
                            CondicaoProtocoloRepository catalogoCondicoes, UtenteCondicaoRepository condicoes,
-                           AcessoSaudeRepository acessosSaude, pt.lar.repositories.PesoRepository pesos) {
+                           AcessoSaudeRepository acessosSaude, pt.lar.repositories.PesoRepository pesos,
+                           VigilanciaService vigilancia, pt.lar.repositories.VigilanciaRepository verificacoes,
+                           pt.lar.repositories.VigilanciaPlanoRepository planosVigilancia) {
+        this.vigilancia = vigilancia;
+        this.verificacoes = verificacoes;
+        this.planosVigilancia = planosVigilancia;
         this.pesos = pesos;
         this.catalogoCondicoes = catalogoCondicoes;
         this.condicoes = condicoes;
@@ -117,6 +125,8 @@ public class DemoDataService {
         acessosSaude.deleteAllInBatch();
         condicoes.deleteAllInBatch();
         pesos.deleteAllInBatch();
+        verificacoes.deleteAllInBatch();
+        planosVigilancia.deleteAllInBatch();
         registos.deleteAllInBatch();
         auditoria.deleteAllInBatch();
         planos.deleteAllInBatch();
@@ -200,12 +210,14 @@ public class DemoDataService {
         }
 
         // 5. Ocorrências
-        ocorrencia(lista.get(3), TipoRegisto.QUEDA, "COM_LESAO", "Escorregou ao levantar-se da cama",
-                agora.minus(Duration.ofHours(5)), zona);                       // recente: <48 h
+        Registo quedaRecente = ocorrencia(lista.get(3), TipoRegisto.QUEDA, "COM_LESAO", "Escorregou ao levantar-se da cama",
+                agora.minus(Duration.ofHours(5)), zona);
+        vigilanciaDeDemonstracao(quedaRecente, 2, 2);                          // 1.ª e 2.ª feitas (a 2.ª com alerta); a 3.ª daqui a ~3 h                       // recente: <48 h
         ocorrencia(lista.get(6), TipoRegisto.DOR, "PEITO", null,
                 agora.minus(Duration.ofHours(30)), zona);                      // recente: <48 h
-        ocorrencia(lista.get(10), TipoRegisto.QUEDA, "SEM_LESAO", null,
-                agora.minus(Duration.ofHours(60)), zona);                      // fora das 48 h
+        Registo quedaAntiga = ocorrencia(lista.get(10), TipoRegisto.QUEDA, "SEM_LESAO", null,
+                agora.minus(Duration.ofHours(60)), zona);
+        vigilanciaDeDemonstracao(quedaAntiga, 4, 0);                           // vigilância completa, sem alertas                      // fora das 48 h
         ocorrencia(lista.get(8), TipoRegisto.QUEDA, "SEM_LESAO", "Encontrada sentada no chão",
                 agora.minus(Duration.ofDays(4)), zona);
         ocorrencia(lista.get(0), TipoRegisto.DOR, "CABECA", null,
@@ -410,13 +422,36 @@ public class DemoDataService {
                     .gostos("Gosta de música clássica e de dominó."),
             new P().trato("D. Olinda").gostos("Muito sociável. Gosta de jogos de grupo e de rezar o terço."));
 
-    private void ocorrencia(Utente u, TipoRegisto tipo, String detalhe, String nota, Instant quando, ZoneId zona) {
+    private Registo ocorrencia(Utente u, TipoRegisto tipo, String detalhe, String nota, Instant quando, ZoneId zona) {
         Registo r = new Registo(u, tipo, detalhe, tipo == TipoRegisto.QUEDA ? "Queda" : "Dor / mal-estar",
                 null, quando, quando.atZone(zona).toLocalDate());
         r.setNota(nota);
         r = registos.save(r);
         if (nota != null) {                                   // primeira versão da nota, como se fosse escrita na hora
             notas.save(new RegistoNotaHistorico(r, nota, quando.plusSeconds(90)));
+        }
+        return r;
+    }
+
+    /**
+     * Plano de vigilância de uma queda da demo: as primeiras {@code feitas} verificações já feitas (10 min depois da hora
+     * prevista), a de ordem {@code comAlerta} (1-based; 0 = nenhuma) com uma resposta fora do normal.
+     */
+    private void vigilanciaDeDemonstracao(Registo queda, int feitas, int comAlerta) {
+        vigilancia.criarPlano(queda);
+        var autora = funcionarios.findByNumero(1).orElse(null);
+        int total = props.vigilancia().intervalosHoras().size();
+        for (var v : verificacoes.daQueda(queda.getId())) {
+            if (v.getOrdem() > feitas) break;
+            Instant feita = v.getPrevistaEm().plus(Duration.ofMinutes(10));
+            boolean alerta = v.getOrdem() == comAlerta;
+            Registo reg = new Registo(queda.getUtente(), TipoRegisto.VIGILANCIA, v.getOrdem() + "/" + total,
+                    "Vigilância " + v.getOrdem() + " de " + total, null, feita, feita.atZone(ZoneId.of(props.fuso())).toLocalDate());
+            reg.setRealizadoPor(autora);
+            reg = registos.save(reg);
+            v.registar(feita, reg, true, alerta ? VigilanciaService.DOR_MODERADA : VigilanciaService.DOR_SEM,
+                    VigilanciaService.MOVE_SIM, alerta);
+            verificacoes.save(v);
         }
     }
 

@@ -59,6 +59,7 @@ class ExigenciaSessaoMvcTest extends BaseIntegracaoTest {
             case TOMA -> post(ficha() + "/tomas/" + plano.getId());
             case REFEICAO -> post(ficha() + "/refeicao/ALMOCO/TUDO");
             case PESO -> post(ficha() + "/peso").param("kg", "70.0");
+            case VIGILANCIA -> throw new IllegalArgumentException("A vigilância tem o seu próprio teste (VigilanciaMvcTest)");
         };
         return b.header("HX-Request", "true");
     }
@@ -98,7 +99,7 @@ class ExigenciaSessaoMvcTest extends BaseIntegracaoTest {
     void banhoNuncaExigeSessaoSejaQuaisForemAsOutrasDefinicoes() throws Exception {
         for (boolean ocorrencia : new boolean[] {false, true}) {
             for (boolean comSessao : new boolean[] {false, true}) {
-                registos.deleteAllInBatch();
+                apagarRegistos();
                 exigir(ocorrencia, true);
                 MockHttpSession s = comSessao ? entrar(1, "1111") : new MockHttpSession();
 
@@ -117,7 +118,7 @@ class ExigenciaSessaoMvcTest extends BaseIntegracaoTest {
         for (TipoRegisto tipo : new TipoRegisto[] {TipoRegisto.QUEDA, TipoRegisto.DOR}) {
             for (boolean exige : new boolean[] {false, true}) {
                 for (boolean comSessao : new boolean[] {false, true}) {
-                    registos.deleteAllInBatch();
+                    apagarRegistos();
                     exigir(exige, true);
                     MockHttpSession s = comSessao ? entrar(1, "1111") : new MockHttpSession();
 
@@ -143,7 +144,7 @@ class ExigenciaSessaoMvcTest extends BaseIntegracaoTest {
     void tomaExigeSempreSessaoMesmoComAOpcaoDesligada() throws Exception {
         for (boolean configurado : new boolean[] {true, false}) {
             for (boolean comSessao : new boolean[] {false, true}) {
-                registos.deleteAllInBatch();
+                apagarRegistos();
                 exigir(false, configurado);
                 MockHttpSession s = comSessao ? entrar(1, "1111") : new MockHttpSession();
 
@@ -225,7 +226,7 @@ class ExigenciaSessaoMvcTest extends BaseIntegracaoTest {
         MockHttpSession ana = entrar(1, "1111");
         MockHttpSession bia = entrar(2, "2222");
         for (TipoRegisto tipo : new TipoRegisto[] {TipoRegisto.QUEDA, TipoRegisto.DOR, TipoRegisto.TOMA}) {
-            registos.deleteAllInBatch();
+            apagarRegistos();
             mvc.perform(pedido(tipo).session(ana)).andExpect(status().isOk());
             Registo r = ultimo();
 

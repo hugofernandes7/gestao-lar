@@ -19,16 +19,19 @@ import pt.lar.services.Regras;
 @Transactional(readOnly = true)
 public class GrelhaService {
 
-    public record CartaoUtente(Utente utente, boolean ocorrencia, boolean atraso) {}
+    public record CartaoUtente(Utente utente, boolean ocorrencia, boolean atraso, boolean vigilancia) {}
 
     private final UtenteRepository utentes;
     private final RegistoRepository registos;
     private final MedicacaoPlanoRepository planos;
     private final Regras regras;
     private final Clock clock;
+    private final VigilanciaService vigilancia;
 
     public GrelhaService(UtenteRepository utentes, RegistoRepository registos,
-                         MedicacaoPlanoRepository planos, Regras regras, Clock clock) {
+                         MedicacaoPlanoRepository planos, Regras regras, Clock clock,
+                         VigilanciaService vigilancia) {
+        this.vigilancia = vigilancia;
         this.utentes = utentes;
         this.registos = registos;
         this.planos = planos;
@@ -49,9 +52,11 @@ public class GrelhaService {
                 .map(p -> p.getUtente().getId())
                 .collect(Collectors.toSet());
 
+        Set<Long> comVigilancia = vigilancia.utentesEmAtraso();
+
         return utentes.findByAtivoTrueOrderByIdAsc().stream()
                 .sorted(Comparator.comparingInt((Utente u) -> numeroQuarto(u.getQuarto())).thenComparing(Utente::getNome))
-                .map(u -> new CartaoUtente(u, comOcorrencia.contains(u.getId()), comAtraso.contains(u.getId())))
+                .map(u -> new CartaoUtente(u, comOcorrencia.contains(u.getId()), comAtraso.contains(u.getId()), comVigilancia.contains(u.getId())))
                 .toList();
     }
 

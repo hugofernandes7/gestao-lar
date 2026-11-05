@@ -26,6 +26,8 @@
     <g th:if="${nome == 'desfazer'}"><path d="M4.5 9h10a5 5 0 0 1 0 10H9"/><path d="M8.5 4.5 4.2 9l4.3 4.5"/></g>
     <!-- em atraso: relógio -->
     <g th:if="${nome == 'relogio'}"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></g>
+    <!-- vigilância: olho (ícone próprio do selo laranja da grelha e do aviso) -->
+    <g th:if="${nome == 'olho'}"><path d="M2.5 12s3.6-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.6 6.5-9.5 6.5S2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></g>
     <!-- pendente: círculo vazio -->
     <circle th:if="${nome == 'pendente'}" cx="12" cy="12" r="8"/>
     <!-- alergia / aviso de segurança: losango com ponto de exclamação (forma própria: não se confunde com a queda) -->

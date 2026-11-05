@@ -95,6 +95,16 @@ public abstract class BaseIntegracaoTest {
     @Autowired protected pt.lar.repositories.UtenteCondicaoRepository utenteCondicoes;
     @Autowired protected pt.lar.repositories.AcessoSaudeRepository acessosSaude;
     @Autowired protected pt.lar.repositories.PesoRepository pesosRepo;
+    @Autowired protected pt.lar.repositories.VigilanciaRepository vigilanciaVerificacoes;
+    @Autowired protected pt.lar.repositories.VigilanciaPlanoRepository vigilanciaPlanos;
+
+    /** Apaga os registos pela ordem das chaves estrangeiras (vigilância e peso apontam para eles). */
+    protected void apagarRegistos() {
+        vigilanciaVerificacoes.deleteAllInBatch();
+        vigilanciaPlanos.deleteAllInBatch();
+        pesosRepo.deleteAllInBatch();
+        registos.deleteAllInBatch();
+    }
     @Autowired protected pt.lar.services.SaudeService saudeService;
     @Autowired protected org.springframework.jdbc.core.JdbcTemplate jdbc;
 
@@ -106,6 +116,8 @@ public abstract class BaseIntegracaoTest {
         acessosSaude.deleteAllInBatch();
         utenteCondicoes.deleteAllInBatch();
         pesosRepo.deleteAllInBatch();
+        vigilanciaVerificacoes.deleteAllInBatch();
+        vigilanciaPlanos.deleteAllInBatch();
         reporCatalogoDeCondicoes();
         registos.deleteAllInBatch();
         tentativas.deleteAllInBatch();

@@ -33,6 +33,7 @@ import pt.lar.services.RegistoService.Resultado;
 import pt.lar.services.SaudeService;
 import pt.lar.services.SessaoNecessariaException;
 import pt.lar.services.SessaoService;
+import pt.lar.services.VigilanciaService;
 
 /**
  * Tablet. A funcionária com sessão de PIN (se houver) chega a cada método como atributo do pedido, posta lá pelo
@@ -50,9 +51,11 @@ public class TabletController {
     private final Formatos fmt;
     private final DefinicoesService definicoes;
     private final SaudeService saude;
+    private final VigilanciaService vigilancia;
 
     public TabletController(GrelhaService grelha, FichaService ficha, RegistoService registos, Formatos fmt,
-                            DefinicoesService definicoes, SaudeService saude) {
+                            DefinicoesService definicoes, SaudeService saude, VigilanciaService vigilancia) {
+        this.vigilancia = vigilancia;
         this.saude = saude;
         this.definicoes = definicoes;
         this.grelha = grelha;
@@ -140,6 +143,34 @@ public class TabletController {
         Mensagem m = Mensagem.ok("Dor / mal-estar registada às " + fmt.hora(r.registo().getDataHora())
                 + " — " + etiqueta.toLowerCase(), r.registo(), true, Painel.NENHUM);
         return resposta(id, Painel.NENHUM, m, por, model);
+    }
+
+    // ---- Vigilância pós-queda: «Fazer» → 3 respostas → Guardar (sempre com PIN) ---------------------------
+
+    @GetMapping("/tablet/utentes/{id}/vigilancia")
+    Object painelVigilancia(@PathVariable Long id, @RequestHeader(value = "HX-Request", required = false) String htmx,
+                            @RequestAttribute(name = FUNCIONARIA, required = false) Funcionario por, Model model) {
+        if (por == null) return pedirAcessoPara(id, htmx != null, "vigilancia");
+        model.addAttribute("f", ficha.montar(id, Painel.VIGILANCIA, null, null, FichaService.Aba.REGISTOS, true));
+        return htmx != null ? "tablet/ficha :: conteudo" : "tablet/ficha";
+    }
+
+    /** As respostas nunca vêm por defeito: sem as 3 (consciente: sim|nao; dor; move) nada se grava. */
+    @PostMapping("/tablet/utentes/{id}/vigilancia/{verificacaoId}")
+    Object registarVigilancia(@PathVariable Long id, @PathVariable Long verificacaoId,
+                              @RequestParam(required = false) String consciente,
+                              @RequestParam(required = false) String dor,
+                              @RequestParam(required = false) String move,
+                              @RequestAttribute(name = FUNCIONARIA, required = false) Funcionario por, Model model) {
+        Boolean c = "sim".equals(consciente) ? Boolean.TRUE : "nao".equals(consciente) ? Boolean.FALSE : null;
+        try {
+            var feita = vigilancia.registar(id, verificacaoId, new VigilanciaService.Respostas(c, dor, move), por);
+            Mensagem m = new Mensagem(feita.registo().getDescricao() + " registada às " + fmt.hora(feita.registo().getDataHora()),
+                    null, false, "nenhum", false);
+            return resposta(id, feita.alerta() ? Painel.VIGILANCIA_ALERTA : Painel.NENHUM, m, por, model);
+        } catch (VigilanciaService.RespostasInvalidasException e) {
+            return resposta(id, Painel.VIGILANCIA, Mensagem.info("Responda às 3 perguntas antes de guardar."), por, model);
+        }
     }
 
     // ---- Refeição: 1.º toque abre o painel, 2.º toque escolhe a quantidade ----------------------------
@@ -256,6 +287,7 @@ public class TabletController {
             case DOR -> Painel.DOR;
             case TOMA -> Painel.MEDICACAO;
             case REFEICAO -> Painel.REFEICAO;
+            case VIGILANCIA -> Painel.VIGILANCIA;
             default -> Painel.NENHUM;
         };
         return pedirAcesso(e.getUtenteId(), htmx, p);
@@ -268,7 +300,7 @@ public class TabletController {
 
     /** Painéis que pedem sessão: medicação sempre; queda e dor se as definições o exigirem. */
     private boolean exigeSessaoParaPainel(Painel p) {
-        return p == Painel.MEDICACAO || ((p == Painel.QUEDA || p == Painel.DOR) && definicoes.exige(Exigencia.OCORRENCIA))
+        return p == Painel.MEDICACAO || p == Painel.VIGILANCIA || ((p == Painel.QUEDA || p == Painel.DOR) && definicoes.exige(Exigencia.OCORRENCIA))
                 || (p == Painel.REFEICAO && definicoes.exige(Exigencia.REFEICAO));
     }
 

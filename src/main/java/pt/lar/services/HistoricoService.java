@@ -28,7 +28,11 @@ public class HistoricoService {
     private final RegistoNotaHistoricoRepository notas;
     private final Formatos fmt;
 
-    public HistoricoService(RegistoRepository registos, RegistoNotaHistoricoRepository notas, Formatos fmt) {
+    private final VigilanciaService vigilancia;
+
+    public HistoricoService(RegistoRepository registos, RegistoNotaHistoricoRepository notas, Formatos fmt,
+                            VigilanciaService vigilancia) {
+        this.vigilancia = vigilancia;
         this.registos = registos;
         this.notas = notas;
         this.fmt = fmt;
@@ -50,14 +54,17 @@ public class HistoricoService {
                         .collect(Collectors.groupingBy(h -> h.getRegisto().getId(),
                                 Collectors.mapping(this::paraVersao, Collectors.toList())));
 
-        return lista.stream().map(r -> paraLinha(r, versoes.getOrDefault(r.getId(), List.of()))).toList();
+        Map<Long, String> vigilancias = vigilancia.descricoesDosRegistos(
+                lista.stream().filter(r -> r.getTipo() == pt.lar.models.TipoRegisto.VIGILANCIA).map(Registo::getId).toList());
+
+        return lista.stream().map(r -> paraLinha(r, versoes.getOrDefault(r.getId(), List.of()), vigilancias.get(r.getId()))).toList();
     }
 
     private VersaoNota paraVersao(RegistoNotaHistorico h) {
         return new VersaoNota(fmt.dataHora(h.getAlteradoEm()), h.getNota());
     }
 
-    private Linha paraLinha(Registo r, List<VersaoNota> versoesNota) {
+    private Linha paraLinha(Registo r, List<VersaoNota> versoesNota, String textoVigilancia) {
         String tipo = switch (r.getTipo()) {
             case BANHO -> "Banho";
             case QUEDA -> "Queda";
@@ -65,6 +72,7 @@ public class HistoricoService {
             case TOMA -> "Toma";
             case REFEICAO -> "Refeição";
             case PESO -> "Peso";
+            case VIGILANCIA -> "Vigilância";
         };
         String descricao = switch (r.getTipo()) {
             case BANHO -> "";
@@ -73,6 +81,7 @@ public class HistoricoService {
             case TOMA -> r.getDescricao() == null ? "" : r.getDescricao();
             case REFEICAO -> RefeicaoService.texto(r);
             case PESO -> "";
+            case VIGILANCIA -> textoVigilancia == null ? r.getDescricao() : textoVigilancia;
         };
         String por = !r.isAnulado() ? null
                 : r.getAnuladoPor() != null ? r.getAnuladoPor().getNome() : "Tablet (sem identificação)";

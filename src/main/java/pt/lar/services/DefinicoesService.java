@@ -53,6 +53,7 @@ public class DefinicoesService {
                 case TOMA -> Optional.of(TOMA);
                 case REFEICAO -> Optional.of(REFEICAO);
                 case PESO -> Optional.of(PESO);
+                case VIGILANCIA -> Optional.of(TOMA);       // como a medicação: a vigilância exige sempre sessão
             };
         }
     }

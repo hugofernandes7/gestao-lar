@@ -70,5 +70,8 @@ lar:
   peso:
     perda-percentagem: 5    # perda de mais de 5 %
     perda-dias: 30          # em 30 dias: «Perda de peso — avisar enfermagem»
+  vigilancia:
+    intervalos-horas: [1, 4, 8, 24]   # verificações pós-queda: 1 h, 4 h, 8 h e 24 h depois da queda
+    tolerancia-minutos: 30            # +30 min sem fazer: selo laranja na grelha
   demo:
     password: demo1234

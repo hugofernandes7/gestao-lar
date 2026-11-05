@@ -53,6 +53,7 @@ public class RegistoService {
     public record ResultadoRefeicao(Registo registo, EstadoRefeicao estado, Registo existente) {}
 
     private final PesoRepository pesos;
+    private final VigilanciaService vigilancia;
     private final TransactionTemplate transacao;
     private final RegistoRepository registos;
     private final RegistoNotaHistoricoRepository notas;
@@ -65,7 +66,8 @@ public class RegistoService {
     public RegistoService(RegistoRepository registos, RegistoNotaHistoricoRepository notas, UtenteRepository utentes,
                           MedicacaoPlanoRepository planos,
                           Regras regras, Clock clock, DefinicoesService definicoes, PesoRepository pesos,
-                          PlatformTransactionManager tm) {
+                          PlatformTransactionManager tm, VigilanciaService vigilancia) {
+        this.vigilancia = vigilancia;
         this.pesos = pesos;
         this.transacao = new TransactionTemplate(tm);
         this.definicoes = definicoes;
@@ -106,8 +108,14 @@ public class RegistoService {
         exigirSessao(utenteId, TipoRegisto.QUEDA, por);
         Utente u = utenteAtivo(utenteId);
         Instant agora = clock.instant();
-        return new Resultado(registos.save(comAutor(new Registo(u, TipoRegisto.QUEDA,
-                comLesao ? "COM_LESAO" : "SEM_LESAO", "Queda", null, agora, regras.diaDe(agora)), por)), true);
+        // a queda e o plano de vigilância nascem na mesma transação
+        Registo queda = transacao.execute(estado -> {
+            Registo r = registos.save(comAutor(new Registo(u, TipoRegisto.QUEDA,
+                    comLesao ? "COM_LESAO" : "SEM_LESAO", "Queda", null, agora, regras.diaDe(agora)), por));
+            vigilancia.criarPlano(r);
+            return r;
+        });
+        return new Resultado(queda, true);
     }
 
     public Resultado dor(Long utenteId, String local) {
@@ -219,6 +227,7 @@ public class RegistoService {
         if (r.getDataHora().isBefore(agora.minus(JANELA_DESFAZER))) return ResultadoDesfazer.FORA_DE_PRAZO;
         r.anular(agora, null);
         reativarSeSubstituiu(r);
+        if (r.getTipo() == TipoRegisto.QUEDA) vigilancia.cancelarDaQueda(r.getId());
         return ResultadoDesfazer.DESFEITO;
     }
 
@@ -234,6 +243,7 @@ public class RegistoService {
         Registo r = registos.findById(registoId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         if (!r.isAnulado()) r.anular(clock.instant(), por);
+        if (r.getTipo() == TipoRegisto.QUEDA) vigilancia.cancelarDaQueda(r.getId());
         if (reativarAnterior && r.isAnulado()) reativarSeSubstituiu(r);
     }
 

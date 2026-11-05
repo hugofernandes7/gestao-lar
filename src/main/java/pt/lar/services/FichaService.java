@@ -35,7 +35,7 @@ import pt.lar.services.Regras;
 public class FichaService {
 
     public enum Painel {
-        NENHUM, QUEDA, DOR, MEDICACAO, NOTA, REFEICAO;
+        NENHUM, QUEDA, DOR, MEDICACAO, NOTA, REFEICAO, VIGILANCIA, VIGILANCIA_ALERTA;
 
         public static Painel de(String s) {
             if (s == null) return NENHUM;
@@ -113,7 +113,7 @@ public class FichaService {
                         List<GrupoToma> grupos, String planoAtualizado, List<LinhaHoje> hoje, Long registoNota,
                         String notaAtual, Aba aba, Atencao atencao, SobreMim sobre,
                         List<SaudeService.CartaoCondicao> saude, String textoRefeicao, PainelRefeicao refeicao,
-                        PesoService.Resumo peso) {
+                        PesoService.Resumo peso, VigilanciaService.Proxima vigilancia) {
         public List<LocalDor> locaisDor() {
             return List.of(LocalDor.values());
         }
@@ -130,10 +130,13 @@ public class FichaService {
     private final SaudeService saudeService;
     private final RefeicaoService refeicoes;
     private final PesoService pesos;
+    private final VigilanciaService vigilanciaService;
 
     public FichaService(UtenteRepository utentes, RegistoRepository registos, MedicacaoPlanoRepository planos,
                         Regras regras, Formatos fmt, Clock clock, pt.lar.config.LarProperties props,
-                        PerfilService perfis, SaudeService saudeService, RefeicaoService refeicoes, PesoService pesos) {
+                        PerfilService perfis, SaudeService saudeService, RefeicaoService refeicoes, PesoService pesos,
+                        VigilanciaService vigilanciaService) {
+        this.vigilanciaService = vigilanciaService;
         this.refeicoes = refeicoes;
         this.pesos = pesos;
         this.perfis = perfis;
@@ -215,6 +218,9 @@ public class FichaService {
         for (Registo r : doDia) if (r.getTipo() == TipoRegisto.REFEICAO && r.getRefeicao() != null) refeicoesDeHoje.put(r.getRefeicao(), r);
         Registo daDetetada = refeicoesDeHoje.get(detetada);
         String textoRefeicao = daDetetada == null ? null : RefeicaoService.texto(daDetetada);
+        // Vigilância pós-queda: a próxima verificação aparece no aviso da queda; o painel só abre se houver uma pendente
+        VigilanciaService.Proxima proximaVigilancia = vigilanciaService.proxima(utenteId).orElse(null);
+        if ((painel == Painel.VIGILANCIA && (proximaVigilancia == null || !comSessao)) && painel != Painel.VIGILANCIA_ALERTA) painel = Painel.NENHUM;
         PainelRefeicao painelRefeicao = null;
         if (painel == Painel.REFEICAO) {
             Refeicao escolhida = refeicaoEscolhida != null ? refeicaoEscolhida : detetada;
@@ -252,7 +258,7 @@ public class FichaService {
         return new Ficha(utente, avisos, banho, painel, mensagem, grupos, textoPlanoAtualizado(plano), hoje,
                 registoNota, notaAtual, aba, atencao, sobre,
                 aba == Aba.SAUDE ? saudeService.cartoes(utenteId) : null, textoRefeicao, painelRefeicao,
-                aba == Aba.SAUDE ? pesos.resumo(utenteId).orElse(null) : null);
+                aba == Aba.SAUDE ? pesos.resumo(utenteId).orElse(null) : null, proximaVigilancia);
     }
 
     private Atencao atencao(UtentePerfil p, List<String> avisosAcao, List<String> alertas) {
@@ -288,6 +294,7 @@ public class FichaService {
             case TOMA -> comSessao ? "Medicação: " + r.getDescricao() : "Medicação dada";
             case REFEICAO -> RefeicaoService.texto(r);
             case PESO -> comSessao ? "Peso registado" : null;     // o valor nunca aparece aqui; só na Saúde
+            case VIGILANCIA -> r.getDescricao();                    // só «Vigilância 1 de 4»: as respostas ficam no admin
         };
     }
 

@@ -201,6 +201,7 @@ Se usares outra rede, é o IPv4 do adaptador ligado a essa rede.
   - **Peso** (Saúde, com PIN): teclado numérico próprio (1 decimal, 20–250 kg), mostra o último peso e a variação; Guardar só fica ativo com um valor válido.
   - **Alertas** no bloco Atenção (sem selos novos na grelha): «Come pouco há 3 refeições» (últimas 3 refeições registadas *Pouco*/*Recusou*) e «Perda de peso — avisar enfermagem» (> 5 % em 30 dias). Sem diagnósticos nem nomes de medicamentos.
   - O botão «Humor» (Etapa 10) fica reservado: o 3.º lugar da 1.ª linha está vazio.
+  - **Vigilância pós-queda** (Etapa 9): cada queda cria 4 verificações (por defeito 1 h, 4 h, 8 h e 24 h depois; `lar.vigilancia.intervalos-horas`). A ficha mostra, por baixo do aviso da queda, «Vigilância 1 de 4 — às 15:40» com o botão **Fazer** (não é um 7.º botão da grelha). Fazer pede sempre número + PIN e tem **3 perguntas** (consciente e orientado? dor? move-se como habitual?): as respostas **nunca vêm preenchidas** e **Guardar só se ativa com as 3**. É a **exceção aceite ao limite de toques**: Fazer + 3 respostas + Guardar = 5 toques (o PIN não conta). Uma resposta fora do normal (não consciente, dor moderada/forte, move-se com dificuldade/não se move) grava um alerta e mostra o bloco «Avisar a enfermagem agora». Passados 30 min da hora prevista (`lar.vigilancia.tolerancia-minutos`) sem a fazer, a grelha mostra um **selo laranja com um olho** («Vigilância em atraso»). Anular a queda (tablet ou admin) cancela as verificações por fazer. No admin, `/admin/historico` (filtro «Vigilância») mostra quem fez, as respostas, o atraso e o alerta.
   - **Separador Saúde** (3.º separador, **só com sessão de PIN**): mostra as condições ativas do utente e, para cada
     uma, «O que fazer» passo a passo. Cada abertura fica registada (quem, qual utente, quando) e aparece em
     `/admin/acessos`. É só leitura. Sem PIN, o tablet **nunca** mostra nomes de condições nem de medicamentos:
@@ -309,6 +310,7 @@ Se usares outra rede, é o IPv4 do adaptador ligado a essa rede.
 | Refeição | 1 registo ativo por utente, dia e tipo de refeição (índice único parcial); substituir anula o anterior |
 | Peso | 20–250 kg, 1 casa decimal; alerta se a perda > 5 % nos últimos 30 dias (`lar.peso`) |
 | Exige sessão | `lar.registo.exige-sessao` (ou Definições): ocorrência, toma, **refeição (por defeito não)** e **peso (por defeito sim)**; aplicado em `RegistoService` |
+| Vigilância | 4 verificações por queda (+1/4/8/24 h); atraso = hora prevista + 30 min (estrito); exige sempre sessão de PIN; respostas obrigatórias |
 | Dia | dia civil em `Europe/Lisbon` |
 
 As duas regras de unicidade estão garantidas **na própria base de dados** (índices únicos parciais), por isso
@@ -329,6 +331,7 @@ screenshots/etapa5b/ capturas da ficha em duas colunas (incluindo um pior caso a
 screenshots/etapa6/  capturas do acesso por número + PIN, da sessão e do admin de funcionárias e acessos
 screenshots/etapa7/  capturas do separador Saúde (pede PIN, protocolos), do admin de protocolos, condições e acessos; `09`–`15` mostram protocolo validado vs por validar
 screenshots/etapa8/  capturas da Etapa 8: grelha 3×2, refeição (quantidade, trocar de refeição, confirmar substituição), alertas, peso com teclado, gráfico no admin, filtro por tipo e Definições
+screenshots/etapa9/  capturas da Etapa 9: aviso e botão Fazer, as 3 perguntas (Guardar desativado → ativo), «Avisar a enfermagem agora», selo laranja na grelha, histórico no admin
 
 ---
 
@@ -382,8 +385,11 @@ nessa altura; depois funciona offline. Para correr só os testes sem interface: 
 | `PesoServiceTest` | validação, sessão, variação, alerta (> 5 % em 30 dias, fronteiras), gráfico SVG válido e sem recursos externos |
 | `RefeicaoPesoMvcTest` | rotas, confirmação de substituição, exigência de sessão por tipo, Hoje e filtro por tipo no admin |
 | `RefeicaoPesoUiTest` | **grelha 3×2 visível sem scroll nas 15 fichas, botões ≥ 2 cm, contagem de toques por fluxo (refeição 2, trocar 3, substituir 3, peso 2)**, teclado do peso, alertas, desfazer |
+| `VigilanciaServiceTest` | os 4 pontos nascem com a queda, intervalos da configuração, atraso aos 30 min (29:59 / 30:00 / 30:01), anular a queda cancela as pendentes, respostas obrigatórias, alerta, PIN obrigatório, descrição do histórico |
+| `VigilanciaMvcTest` | aviso sem PIN, «Fazer» pede PIN e volta ao painel, perguntas sem nada preenchido, resposta incompleta não grava, bloco de alerta, selo na grelha, histórico e filtro no admin |
+| `VigilanciaUiTest` | **Fazer → 3 respostas → Guardar = 5 toques**, Guardar só com as 3, botões ≥ 2 cm, alerta, selo laranja com ícone, queda anulada tira o aviso |
 
-Total: **420 testes** (mais 6, `CapturasEsteticasTest`, que só correm com `-Dcapturas=true`). Os de interface demoram
+Total: **478 testes** (mais 7, `CapturasEsteticasTest`, que só correm com `-Dcapturas=true`). Os de interface demoram
 cerca de 3 minutos porque esperam temporizadores reais de 10 s e 60 s.
 O `axe.min.js` está em `src/test/resources/axe/` e só é usado nos testes (a aplicação não tem dependências externas).
 
@@ -399,7 +405,7 @@ src/main/java/pt/lar/
   repositories/  Spring Data JPA
   services/      Regras, RegistoService, GrelhaService, FichaService, PlanoService, …
 src/main/resources/
-  db/migration/  V1__schema.sql, V2__fotos_e_historico_de_notas.sql, V3__perfil_de_atencao.sql, V4__funcionarios_e_acesso_por_pin.sql, V5__definicoes.sql, V6__banho_nunca_exige_sessao.sql, V7__condicoes_e_saude.sql, V8__catalogo_editavel_e_validacao_de_protocolos.sql, V9__refeicoes_e_peso.sql, V10__substituicao_de_refeicao.sql (Flyway)
+  db/migration/  V1__schema.sql, V2__fotos_e_historico_de_notas.sql, V3__perfil_de_atencao.sql, V4__funcionarios_e_acesso_por_pin.sql, V5__definicoes.sql, V6__banho_nunca_exige_sessao.sql, V7__condicoes_e_saude.sql, V8__catalogo_editavel_e_validacao_de_protocolos.sql, V9__refeicoes_e_peso.sql, V10__substituicao_de_refeicao.sql, V11__vigilancia_pos_queda.sql (Flyway)
   templates/     tablet/*, admin/*  (Thymeleaf)
   static/        css/, fonts/ (Atkinson Hyperlegible), js/htmx.min.js (local), manifest.json, icons/
 screenshots/final/   capturas 1280×800 do aspeto final (grelha, ficha, admin)
@@ -407,6 +413,7 @@ screenshots/etapa5/  capturas da Etapa 5: «Atenção», alergias, «Sobre mim»
 ```
 (Etapa 7: `SaudeService`, `AdminSaudeController`, entidades `CondicaoProtocolo`, `UtenteCondicao`, `AcessoSaude`.)
 (Etapa 8: `RefeicaoService`, `PesoService`, `PesoGraficoSvg`, `AdminPesoController`, entidade `Peso`, `static/js/teclado-num.js`.)
+(Etapa 9: `VigilanciaService`, entidades `VigilanciaPlano` e `VigilanciaVerificacao`, `static/js/vigilancia.js`.)
 
 ## 8. Fora de âmbito (de propósito)
 

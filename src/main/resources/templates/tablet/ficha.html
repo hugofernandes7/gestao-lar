@@ -193,7 +193,7 @@
 
         <!-- Botões de ação: sempre visíveis (fora da zona que rola). -->
         <!-- (escondidos enquanto se escreve uma nota: sobra espaço para o teclado do tablet) -->
-        <div class="botoes" th:if="${f.aba().name() == 'REGISTOS' and f.painel().name() != 'NOTA'}">
+        <div class="botoes" th:if="${f.aba().name() == 'REGISTOS' and f.painel().name() != 'NOTA' and f.painel().name() != 'VIGILANCIA'}">
             <div class="btn btn-acao btn-feito" th:if="${f.banho() != null}">
                 <th:block th:replace="~{tablet/icones :: ic('ok')}"/>
                 <span>Banho feito às <span th:text="${@fmt.hora(f.banho().dataHora)}">10:00</span></span>
@@ -228,6 +228,19 @@
 
         <!-- Zona que rola (se for preciso): painéis, "Hoje" ou "Sobre mim". -->
         <div class="dir-rolagem" tabindex="0" role="region" aria-label="Detalhe">
+
+            <!--/* Vigilância pós-queda: a próxima verificação. É um botão dentro do aviso (não um 7.º botão da grelha). Fica
+                 na zona da direita (por baixo dos botões) para não empurrar o bloco «Atenção» da esquerda. Sem PIN para ver;
+                 «Fazer» pede número + PIN. Em atraso (hora + 30 min): laranja, com texto e ícone próprio. */-->
+            <div class="aviso-vigilancia" th:if="${f.vigilancia() != null and f.aba().name() == 'REGISTOS' and f.painel().name() == 'NENHUM'}"
+                 th:classappend="${f.vigilancia().emAtraso()} ? 'em-atraso'">
+                <th:block th:replace="~{tablet/icones :: ic('olho')}"/>
+                <span class="vig-texto">
+                    <span th:text="${f.vigilancia().texto()}">Vigilância 1 de 4 — às 15:40</span>
+                    <strong class="vig-atraso" th:if="${f.vigilancia().emAtraso()}">Em atraso</strong>
+                </span>
+                <button type="button" class="btn btn-fazer" th:hx-get="@{${base} + '/vigilancia'}">Fazer</button>
+            </div>
 
             <!-- Separador "Sobre mim" (só leitura) -->
             <section class="sobre" th:if="${f.aba().name() == 'SOBRE'}">
@@ -322,6 +335,57 @@
                 </div>
 
                 <!-- Painel: Refeição. 2.º toque = quantidade; o chip troca de refeição; se já existe, pede confirmação. -->
+                <!--/* Painel: Vigilância pós-queda. As 3 respostas começam SEMPRE por responder; «Guardar» só se ativa com as 3.  */-->
+                <div class="painel painel-vigilancia" data-vigilancia th:if="${f.painel().name() == 'VIGILANCIA'}" th:with="v=${f.vigilancia()}">
+                    <h2>Vigilância pós-queda <small th:text="${v.texto()}">Vigilância 1 de 4 — às 15:40</small></h2>
+
+                    <div class="pergunta" data-pergunta="consciente" role="group" aria-labelledby="p-consciente">
+                        <p class="pergunta-texto" id="p-consciente">Está consciente e orientado?</p>
+                        <div class="pergunta-opcoes">
+                            <button type="button" class="btn btn-resp" data-valor-resp="sim" aria-pressed="false">Sim</button>
+                            <button type="button" class="btn btn-resp" data-valor-resp="nao" aria-pressed="false">Não</button>
+                        </div>
+                    </div>
+                    <div class="pergunta" data-pergunta="dor" role="group" aria-labelledby="p-dor">
+                        <p class="pergunta-texto" id="p-dor">Tem dor?</p>
+                        <div class="pergunta-opcoes">
+                            <button type="button" class="btn btn-resp" data-valor-resp="SEM_DOR" aria-pressed="false">Sem dor</button>
+                            <button type="button" class="btn btn-resp" data-valor-resp="LIGEIRA" aria-pressed="false">Ligeira</button>
+                            <button type="button" class="btn btn-resp" data-valor-resp="MODERADA" aria-pressed="false">Moderada</button>
+                            <button type="button" class="btn btn-resp" data-valor-resp="FORTE" aria-pressed="false">Forte</button>
+                        </div>
+                    </div>
+                    <div class="pergunta" data-pergunta="move" role="group" aria-labelledby="p-move">
+                        <p class="pergunta-texto" id="p-move">Move-se como habitual?</p>
+                        <div class="pergunta-opcoes">
+                            <button type="button" class="btn btn-resp" data-valor-resp="SIM" aria-pressed="false">Sim</button>
+                            <button type="button" class="btn btn-resp" data-valor-resp="DIFICULDADE" aria-pressed="false">Com dificuldade</button>
+                            <button type="button" class="btn btn-resp" data-valor-resp="NAO_SE_MOVE" aria-pressed="false">Não se move</button>
+                        </div>
+                    </div>
+
+                    <!--/* Valores escolhidos (vazios até a funcionária responder: nada vem por defeito)  */-->
+                    <input type="hidden" name="consciente" value="" data-resp-valor>
+                    <input type="hidden" name="dor" value="" data-resp-valor>
+                    <input type="hidden" name="move" value="" data-resp-valor>
+
+                    <div class="opcoes">
+                        <button type="button" class="btn btn-opcao" data-guardar disabled
+                                th:hx-post="@{${base} + '/vigilancia/' + ${v.verificacaoId()}}" hx-include="[data-resp-valor]">Guardar</button>
+                        <button type="button" class="btn btn-opcao btn-opcao-neutro" th:hx-get="@{${base}}">Cancelar</button>
+                    </div>
+                </div>
+
+                <!--/* Depois de guardar com uma resposta fora do normal: bloco destacado, sem desaparecer sozinho  */-->
+                <div class="painel painel-alerta-vigilancia" role="alert" th:if="${f.painel().name() == 'VIGILANCIA_ALERTA'}">
+                    <th:block th:replace="~{tablet/icones :: ic('alergia')}"/>
+                    <div>
+                        <h2>Avisar a enfermagem agora</h2>
+                        <p>Alguma resposta está fora do normal. Fica registado para a enfermagem ver.</p>
+                    </div>
+                    <button type="button" class="btn btn-opcao" th:hx-get="@{${base}}">Percebi</button>
+                </div>
+
                 <div class="painel painel-refeicao" th:if="${f.painel().name() == 'REFEICAO'}" th:with="r=${f.refeicao()}">
                     <th:block th:if="${r.confirmar() != null}">
                         <h2>Substituir o registo?</h2>
@@ -436,5 +500,6 @@
 
 <script src="/js/tablet.js"></script>
 <script src="/js/teclado-num.js"></script>
+<script src="/js/vigilancia.js"></script>
 </body>
 </html>

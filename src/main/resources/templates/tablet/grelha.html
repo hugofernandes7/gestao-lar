@@ -34,12 +34,15 @@
     </header>
     <main class="grelha">
         <a th:each="c : ${cartoes}" class="cartao"
-           th:classappend="${c.ocorrencia()} ? 'tem-ocorrencia' : (${c.atraso()} ? 'tem-atraso' : '')"
+           th:classappend="${c.ocorrencia()} ? 'tem-ocorrencia' : ((${c.atraso()} or ${c.vigilancia()}) ? 'tem-atraso' : '')"
            th:href="@{/tablet/utentes/{id}(id=${c.utente().id})}">
             <div class="foto">
                 <img th:src="@{/fotos/{id}(id=${c.utente().id})}" alt="">
                 <div class="faixa" th:if="${c.ocorrencia()}"><th:block th:replace="~{tablet/icones :: ic('queda')}"/> Ocorrência</div>
-                <div class="selo" th:if="${c.atraso()}"><th:block th:replace="~{tablet/icones :: ic('relogio')}"/> Medicação em atraso</div>
+                <div class="selos" th:if="${c.atraso() or c.vigilancia()}">
+                    <div class="selo" th:if="${c.atraso()}"><th:block th:replace="~{tablet/icones :: ic('relogio')}"/> Medicação em atraso</div>
+                    <div class="selo selo-vigilancia" th:if="${c.vigilancia()}"><th:block th:replace="~{tablet/icones :: ic('olho')}"/> Vigilância em atraso</div>
+                </div>
             </div>
             <div class="linha-nome">
                 <span class="nome" th:text="${@fmt.nomeCurto(c.utente().nome)}">Nome</span>
