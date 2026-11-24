@@ -69,26 +69,28 @@ class RefeicaoPesoUiTest extends BaseVisualTest {
     }
 
     @Test
-    void aOrdemEBanhoRefeicaoHumorEmCima_QuedaDorMedicacaoEmBaixo() {
+    void aOrdemEBanhoRefeicaoHidratacaoEmCima_QuedaDorMedicacaoEmBaixo() {
         abrirFicha(quarto1);
         Locator btn = pagina.locator(".col-dir .botoes .btn-acao");
-        assertThat(btn).hasCount(5);                                   // «Humor» (Etapa 10) ocupa o 3.º lugar da 1.ª linha
+        assertThat(btn).hasCount(6);                                   // a grelha 3×2 está cheia
         var banho = btn.nth(0).boundingBox();
         var refeicao = btn.nth(1).boundingBox();
-        var queda = btn.nth(2).boundingBox();
-        var dor = btn.nth(3).boundingBox();
-        var medicacao = btn.nth(4).boundingBox();
+        var hidratacao = btn.nth(2).boundingBox();
+        var queda = btn.nth(3).boundingBox();
+        var dor = btn.nth(4).boundingBox();
+        var medicacao = btn.nth(5).boundingBox();
         assertThat(btn.nth(0)).containsText("Banho");
         assertThat(btn.nth(1)).containsText("Refeição");
-        assertThat(btn.nth(2)).containsText("Queda");
-        assertThat(btn.nth(3)).containsText("Dor");
-        assertThat(btn.nth(4)).containsText("Medicação");
-        assertThat(banho.y).isEqualTo(refeicao.y);
+        assertThat(btn.nth(2)).containsText("Hidratação");
+        assertThat(btn.nth(3)).containsText("Queda");
+        assertThat(btn.nth(4)).containsText("Dor");
+        assertThat(btn.nth(5)).containsText("Medicação");
+        assertThat(banho.y).isEqualTo(refeicao.y).isEqualTo(hidratacao.y);
         assertThat(queda.y).isEqualTo(dor.y).isEqualTo(medicacao.y);
         assertThat(queda.y).isGreaterThan(banho.y + banho.height - 1);
-        assertThat(queda.x).isEqualTo(banho.x);                         // colunas alinhadas: Banho/Queda, Refeição/Dor
+        assertThat(queda.x).isEqualTo(banho.x);                         // colunas alinhadas: Banho/Queda, Refeição/Dor, Hidratação/Medicação
         assertThat(dor.x).isEqualTo(refeicao.x);
-        assertThat(medicacao.x).isGreaterThan(dor.x);
+        assertThat(medicacao.x).isEqualTo(hidratacao.x);
     }
 
     // ---- Refeição: 2 toques ------------------------------------------------------------------------------------

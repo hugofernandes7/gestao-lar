@@ -327,7 +327,13 @@ textarea::placeholder { color: var(--cinza); opacity: 1; }
 
 /* ---------- Etapa 8: refeições e peso ---------- */
 button.btn-feito { cursor: pointer; }
-.btn-vazio { display: block; min-height: 5.6rem; }                      /* lugar livre na grelha 3×2 (Humor, Etapa 10) */
+.btn-vazio { display: block; min-height: 5.6rem; }                      /* lugar livre na grelha 3×2 (já não há nenhum) */
+.btn-emergencia { flex-direction: column; gap: .1rem; min-height: 4.4rem; text-decoration: none; }
+.btn-emergencia small { font-weight: 400; font-size: 1rem; }
+.chips-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.btn-nivel { flex-direction: column; min-height: 6.6rem; gap: .2rem; font-size: 1.3rem; }
+.nivel-num { font-size: 2.8rem; font-weight: 700; line-height: 1; }
+.painel-hidratacao h2 small { font-weight: 400; font-size: 1.1rem; color: var(--cinza); }
 .opcoes-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .btn-prato { flex-direction: column; min-height: 6.6rem; gap: .3rem; font-size: 1.3rem; }
 .btn-prato .ic { width: 2.8rem; height: 2.8rem; }

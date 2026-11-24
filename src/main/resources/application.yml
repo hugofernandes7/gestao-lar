@@ -36,7 +36,7 @@ management:
         include: health
 
 lar:
-  nome: Lar de Idosos          # mostrado na barra superior do tablet (LAR_NOME)
+  nome: AMS                    # mostrado na barra superior do tablet (LAR_NOME)
   fuso: Europe/Lisbon
   # Horários fixos das tomas. Podem ser alterados por variável de ambiente (ex.: LAR_HORARIOS_MANHA=06:00).
   horarios:
@@ -67,6 +67,12 @@ lar:
       JANTAR: "18:30"
       CEIA: "21:00"
     poucas-seguidas: 3      # 3 refeições seguidas «Pouco» ou «Recusou» geram o alerta «Come pouco»
+  # Hidratação: 3 momentos por dia, escala 0–3 (0 Nada, 1 Pouco, 2 Razoável, 3 Bem). Cada momento começa a esta hora.
+  hidratacao:
+    inicio:
+      MANHA: "07:00"
+      TARDE: "12:00"
+      NOITE: "18:00"
   peso:
     perda-percentagem: 5    # perda de mais de 5 %
     perda-dias: 30          # em 30 dias: «Perda de peso — avisar enfermagem»

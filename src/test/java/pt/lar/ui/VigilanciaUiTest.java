@@ -57,7 +57,7 @@ class VigilanciaUiTest extends BaseVisualTest {
         assertThat(pagina.locator(".aviso-vigilancia")).containsText("Vigilância 1 de 4 — às 16:30");
         assertThat(pagina.locator(".aviso-vigilancia .btn-fazer")).hasText("Fazer");
         assertThat(pagina.locator(".aviso-vigilancia svg.ic")).hasCount(1);
-        assertThat(pagina.locator(".col-dir .botoes .btn-acao")).hasCount(5);   // a grelha 3×2 não mudou
+        assertThat(pagina.locator(".col-dir .botoes .btn-acao")).hasCount(6);   // a grelha 3×2 não mudou (Fazer não é um 7.º botão)
         assertThat(pagina.locator(".aviso-vigilancia .vig-atraso")).hasCount(0);
         var caixa = pagina.locator(".btn-fazer").boundingBox();
         org.assertj.core.api.Assertions.assertThat(caixa.height).as("≥ 2 cm").isGreaterThanOrEqualTo(76);

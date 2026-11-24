@@ -42,6 +42,14 @@ Espera uns 20–30 segundos e abre:
 
 Para ver o que a aplicação está a fazer: `docker compose logs -f app`.
 
+### Arrancar com um duplo clique (computador do lar)
+`Iniciar-AMS.bat` faz tudo sozinho: abre o Docker Desktop se estiver fechado, espera que fique pronto, arranca a
+aplicação e abre o AMS no browser (`http://localhost:8080/tablet`). Para as funcionárias:
+1. Instalação (uma vez, com internet): instalar o Docker Desktop, abrir a pasta do projeto e fazer `docker compose up -d --build` (ver acima).
+2. Botão direito em `Iniciar-AMS.bat` → *Enviar para* → *Ambiente de trabalho (criar atalho)*. É esse atalho que se usa.
+3. Opcional: no Docker Desktop → Definições → *Start Docker Desktop when you sign in*; e pôr o atalho na pasta de arranque do Windows (`Win+R` → `shell:startup`) para o AMS abrir quando o computador liga.
+Os dados ficam guardados entre utilizações. Depois de alterar o código, é preciso `docker compose up -d --build` para a imagem apanhar as alterações.
+
 ### Parar e recomeçar
 ```powershell
 docker compose down          # pára (os dados ficam guardados)
@@ -200,7 +208,8 @@ Se usares outra rede, é o IPv4 do adaptador ligado a essa rede.
   - **Refeição** (Etapa 8, sem PIN): 1.º toque abre o painel já na refeição certa pela hora (a última janela que já começou: pequeno-almoço 07:00, almoço 12:00, lanche 15:30, jantar 18:30, ceia 21:00; antes das 07:00, pequeno-almoço; configurável em `lar.refeicoes.inicio`); 2.º toque = *Tudo / Metade / Pouco / Recusou*. Para registar outra refeição há um toque extra nos chips. Uma refeição por tipo, utente e dia: se já existe, o botão mostra «Almoço: Metade» e um novo registo pede confirmação («Substituir o registo?») e anula o anterior. «Desfazer» como nos outros registos; se o registo substituiu outro, desfazer repõe o anterior (V10, mesma transação). No admin, anular esse registo pergunta se o anterior deve ser reativado.
   - **Peso** (Saúde, com PIN): teclado numérico próprio (1 decimal, 20–250 kg), mostra o último peso e a variação; Guardar só fica ativo com um valor válido.
   - **Alertas** no bloco Atenção (sem selos novos na grelha): «Come pouco há 3 refeições» (últimas 3 refeições registadas *Pouco*/*Recusou*) e «Perda de peso — avisar enfermagem» (> 5 % em 30 dias). Sem diagnósticos nem nomes de medicamentos.
-  - O botão «Humor» (Etapa 10) fica reservado: o 3.º lugar da 1.ª linha está vazio.
+  - **Hidratação** (sem PIN por defeito, como a refeição; segue a definição «Refeições e hidratação»): ocupa o 3.º lugar da 1.ª linha, que estava reservado ao «Humor» (Etapa 10; quando chegar precisará de outro sítio). 3 momentos por dia: **manhã** (desde as 07:00), **tarde** (12:00) e **noite** (18:00), configuráveis em `lar.hidratacao.inicio`. 1.º toque abre o painel já no momento certo pela hora; 2.º toque = nível de **0 a 3**: **0 Nada, 1 Pouco, 2 Razoável, 3 Bem** (quanto bebeu nesse momento). Um registo por momento, utente e dia: se já existe, o botão mostra «Hidratação: 2 (Razoável)» e um novo registo pede confirmação («Substituir o registo?»). «Desfazer» como nas refeições (repõe o anterior se foi uma substituição). Aparece em «Hoje» e no histórico do admin (filtro «Hidratação»). Não gera alertas.
+  - **Ficha de emergência (PDF, para o INEM)**: no separador **Saúde** (com número + PIN) há o botão «Ficha de emergência (PDF)»; o mesmo botão existe no `/admin` → Utentes. Descarrega um PDF A4 com: identificação (nome, **idade** e data de nascimento, sexo, n.º de utente SNS, quarto), **contacto de emergência**, médico assistente, **alergias** (em destaque), condições de saúde ativas (com detalhe, data e notas), **medicação habitual** com a **última toma registada**, estado funcional (mobilidade, risco de queda, orientação, textura/dieta, próteses, avisos), último **peso**, **quedas e dores dos últimos 7 dias** (com notas) e um texto livre «Outras informações importantes». Fica de fora o dia a dia (banhos, refeições, hidratação, gostos, como gosta de ser tratado) e os protocolos internos do lar. O que não estiver preenchido aparece como «Não registado» (um perfil de atenção por preencher aparece como «ALERGIAS: NÃO REGISTADO», nunca como «sem alergias»). A idade, o SNS, o contacto, o médico e o texto livre preenchem-se em `/admin` → Utentes → Editar. Cada emissão fica registada (quem, de quem, quando) em `/admin/acessos`.
   - **Vigilância pós-queda** (Etapa 9): cada queda cria 4 verificações (por defeito 1 h, 4 h, 8 h e 24 h depois; `lar.vigilancia.intervalos-horas`). A ficha mostra, por baixo do aviso da queda, «Vigilância 1 de 4 — às 15:40» com o botão **Fazer** (não é um 7.º botão da grelha). Fazer pede sempre número + PIN e tem **3 perguntas** (consciente e orientado? dor? move-se como habitual?): as respostas **nunca vêm preenchidas** e **Guardar só se ativa com as 3**. É a **exceção aceite ao limite de toques**: Fazer + 3 respostas + Guardar = 5 toques (o PIN não conta). Uma resposta fora do normal (não consciente, dor moderada/forte, move-se com dificuldade/não se move) grava um alerta e mostra o bloco «Avisar a enfermagem agora». Passados 30 min da hora prevista (`lar.vigilancia.tolerancia-minutos`) sem a fazer, a grelha mostra um **selo laranja com um olho** («Vigilância em atraso»). Anular a queda (tablet ou admin) cancela as verificações por fazer. No admin, `/admin/historico` (filtro «Vigilância») mostra quem fez, as respostas, o atraso e o alerta.
   - **Separador Saúde** (3.º separador, **só com sessão de PIN**): mostra as condições ativas do utente e, para cada
     uma, «O que fazer» passo a passo. Cada abertura fica registada (quem, qual utente, quando) e aparece em
@@ -253,7 +262,7 @@ Se usares outra rede, é o IPv4 do adaptador ligado a essa rede.
     que não existem. Tudo fica na base de dados (sobrevive a reinícios).
 
 ### Gestão (`/admin`)
-- **Utentes:** criar, editar, desativar/reativar (os desativados aparecem a cinzento, com etiqueta
+- **Utentes:** criar, editar (inclui os dados da ficha de emergência: data de nascimento, sexo, n.º SNS, contacto, médico, informação livre), botão «Ficha de emergência (PDF)», desativar/reativar (os desativados aparecem a cinzento, com etiqueta
   "Desativado"); foto por upload (JPG/PNG).
   - A foto é **guardada na base de dados** (tabela `utente_foto`, `bytea`), por isso entra nas cópias da BD e
     não há volume de fotos. Antes de gravar, é **rodada segundo a orientação EXIF** (fotos de iPhone/telemóvel
@@ -308,6 +317,7 @@ Se usares outra rede, é o IPv4 do adaptador ligado a essa rede.
 | Anulados | não contam para nenhum indicador |
 | Desfazer no tablet | só nos primeiros 60 s (o botão fica visível 10 s) |
 | Refeição | 1 registo ativo por utente, dia e tipo de refeição (índice único parcial); substituir anula o anterior |
+| Hidratação | 1 registo ativo por utente, dia e momento (manhã, tarde, noite; índice único parcial); nível 0–3 (0 Nada, 1 Pouco, 2 Razoável, 3 Bem); substituir anula o anterior |
 | Peso | 20–250 kg, 1 casa decimal; alerta se a perda > 5 % nos últimos 30 dias (`lar.peso`) |
 | Exige sessão | `lar.registo.exige-sessao` (ou Definições): ocorrência, toma, **refeição (por defeito não)** e **peso (por defeito sim)**; aplicado em `RegistoService` |
 | Vigilância | 4 verificações por queda (+1/4/8/24 h); atraso = hora prevista + 30 min (estrito); exige sempre sessão de PIN; respostas obrigatórias |
@@ -324,7 +334,7 @@ Direção "Acolhedora": fundo creme, azul-marinho como cor principal, tipo **Atk
 suave, ícones SVG com o mesmo traço. As cores têm significado fixo e não se usam para decorar:
 **vermelho** = ocorrência, **laranja** = atraso, **verde** = feito. Estados da medicação: *por dar*, *em atraso*,
 *dada*; utentes e linhas *desativados* aparecem a cinzento com etiqueta escrita (nunca só por cor).
-O nome do lar na barra superior configura-se com `LAR_NOME` (por defeito "Lar de Idosos").
+O nome do lar na barra superior configura-se com `LAR_NOME` (por defeito "AMS").
 Os nomes na grelha podem ocupar 2 linhas, mas nunca são cortados nem ficam abaixo de 21 px.
 Capturas: `screenshots/final/` (aspeto geral) e `screenshots/etapa5/` (regenerar com `.\mvnw.cmd test "-Dtest=CapturasEsteticasTest" "-Dcapturas=true"`).
 screenshots/etapa5b/ capturas da ficha em duas colunas (incluindo um pior caso artificial com a coluna esquerda a rolar)

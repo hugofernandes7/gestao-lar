@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import pt.lar.models.Funcionario;
 import pt.lar.models.LocalDor;
+import pt.lar.models.MomentoHidratacao;
+import pt.lar.models.NivelHidratacao;
 import pt.lar.models.QuantidadeRefeicao;
 import pt.lar.models.Refeicao;
 import pt.lar.models.TipoRegisto;
@@ -216,6 +218,51 @@ public class TabletController {
         return resposta(id, Painel.NENHUM, m, por, model);
     }
 
+    // ---- Hidratação: 1.º toque abre o painel (já no momento certo pela hora), 2.º toque escolhe o nível 0–3 ------
+
+    /** Painel para outro momento (a funcionária tocou no chip e escolheu). */
+    @GetMapping("/tablet/utentes/{id}/hidratacao/{momento}")
+    Object painelHidratacao(@PathVariable Long id, @PathVariable String momento,
+                            @RequestAttribute(name = FUNCIONARIA, required = false) Funcionario por, Model model) {
+        if (por == null && definicoes.exige(TipoRegisto.HIDRATACAO)) return pedirAcesso(id, true, Painel.HIDRATACAO);
+        MomentoHidratacao m = MomentoHidratacao.de(momento).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        model.addAttribute("f", ficha.montar(id, Painel.HIDRATACAO, null, null, FichaService.Aba.REGISTOS, por != null, m, (NivelHidratacao) null));
+        return "tablet/ficha :: conteudo";
+    }
+
+    @PostMapping("/tablet/utentes/{id}/hidratacao/{momento}/{nivel}")
+    Object hidratacao(@PathVariable Long id, @PathVariable String momento, @PathVariable String nivel,
+                      @RequestAttribute(name = FUNCIONARIA, required = false) Funcionario por, Model model) {
+        return registarHidratacao(id, momento, nivel, false, por, model);
+    }
+
+    /** Confirmação do 3.º toque: anula o registo que já existia e regista o novo. */
+    @PostMapping("/tablet/utentes/{id}/hidratacao/{momento}/{nivel}/substituir")
+    Object substituirHidratacao(@PathVariable Long id, @PathVariable String momento, @PathVariable String nivel,
+                                @RequestAttribute(name = FUNCIONARIA, required = false) Funcionario por, Model model) {
+        return registarHidratacao(id, momento, nivel, true, por, model);
+    }
+
+    private Object registarHidratacao(Long id, String momento, String nivel, boolean substituir, Funcionario por, Model model) {
+        MomentoHidratacao m = MomentoHidratacao.de(momento).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        NivelHidratacao n = NivelHidratacao.de(nivel).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        var res = registos.hidratacao(id, m, n, substituir, por);
+        String nome = "Hidratação " + m.getEtiqueta().toLowerCase();
+        String valor = n.getValor() + " (" + n.getEtiqueta().toLowerCase() + ")";
+        Mensagem msg;
+        switch (res.estado()) {
+            case NOVA -> msg = Mensagem.ok(nome + " registada: " + valor + " (às " + fmt.hora(res.registo().getDataHora()) + ")",
+                    res.registo(), false, Painel.NENHUM);
+            case SUBSTITUIDA -> msg = Mensagem.ok(nome + " substituída: " + valor + " (às " + fmt.hora(res.registo().getDataHora()) + ")",
+                    res.registo(), false, Painel.NENHUM);
+            default -> {                                  // já existe: pede confirmação em vez de registar
+                model.addAttribute("f", ficha.montar(id, Painel.HIDRATACAO, null, null, FichaService.Aba.REGISTOS, por != null, m, n));
+                return "tablet/ficha :: conteudo";
+            }
+        }
+        return resposta(id, Painel.NENHUM, msg, por, model);
+    }
+
     // ---- Peso (separador Saúde, com PIN) ---------------------------------------------------------------
 
     @PostMapping("/tablet/utentes/{id}/peso")
@@ -287,6 +334,7 @@ public class TabletController {
             case DOR -> Painel.DOR;
             case TOMA -> Painel.MEDICACAO;
             case REFEICAO -> Painel.REFEICAO;
+            case HIDRATACAO -> Painel.HIDRATACAO;
             case VIGILANCIA -> Painel.VIGILANCIA;
             default -> Painel.NENHUM;
         };
@@ -301,7 +349,7 @@ public class TabletController {
     /** Painéis que pedem sessão: medicação sempre; queda e dor se as definições o exigirem. */
     private boolean exigeSessaoParaPainel(Painel p) {
         return p == Painel.MEDICACAO || p == Painel.VIGILANCIA || ((p == Painel.QUEDA || p == Painel.DOR) && definicoes.exige(Exigencia.OCORRENCIA))
-                || (p == Painel.REFEICAO && definicoes.exige(Exigencia.REFEICAO));
+                || ((p == Painel.REFEICAO || p == Painel.HIDRATACAO) && definicoes.exige(Exigencia.REFEICAO));
     }
 
     /**

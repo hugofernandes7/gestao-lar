@@ -58,6 +58,7 @@ class ExigenciaSessaoMvcTest extends BaseIntegracaoTest {
             case DOR -> post(ficha() + "/dor").param("local", "COSTAS");
             case TOMA -> post(ficha() + "/tomas/" + plano.getId());
             case REFEICAO -> post(ficha() + "/refeicao/ALMOCO/TUDO");
+            case HIDRATACAO -> post(ficha() + "/hidratacao/TARDE/2");
             case PESO -> post(ficha() + "/peso").param("kg", "70.0");
             case VIGILANCIA -> throw new IllegalArgumentException("A vigilância tem o seu próprio teste (VigilanciaMvcTest)");
         };

@@ -21,7 +21,7 @@
                 tem de estar ligada e, mesmo que a desligue aqui, o painel continua a pedir PIN
                 <span th:unless="${v.toma()}">(neste momento está desligada, sem efeito)</span>.
             </p>
-            <label class="checkbox"><input type="checkbox" name="refeicao" value="true" th:checked="${v.refeicao()}"> Refeições (sem PIN por defeito)</label>
+            <label class="checkbox"><input type="checkbox" name="refeicao" value="true" th:checked="${v.refeicao()}"> Refeições e hidratação (sem PIN por defeito)</label>
             <label class="checkbox"><input type="checkbox" name="peso" value="true" th:checked="${v.peso()}" aria-describedby="nota-peso"> Peso (por defeito com PIN)</label>
             <p class="alerta alerta-info" id="nota-peso">Sem efeito: a aba Saúde exige sempre PIN. O peso e os sinais vitais registam-se na Saúde, que pede sempre número e PIN para abrir.</p>
         </fieldset>

@@ -54,6 +54,11 @@ public interface RegistoRepository extends JpaRepository<Registo, Long> {
 
     Optional<Registo> findFirstByUtenteIdAndTipoAndRefeicaoAndDiaAndAnuladoFalse(Long utenteId, TipoRegisto tipo, pt.lar.models.Refeicao refeicao, LocalDate dia);
 
+    Optional<Registo> findFirstByUtenteIdAndTipoAndMomentoAndDiaAndAnuladoFalse(Long utenteId, TipoRegisto tipo, pt.lar.models.MomentoHidratacao momento, LocalDate dia);
+
+    /** A última toma (não anulada) deste plano de medicação, de qualquer dia. */
+    Optional<Registo> findFirstByMedicacaoPlanoIdAndTipoAndAnuladoFalseOrderByDataHoraDesc(Long planoId, TipoRegisto tipo);
+
     /** Ids dos planos que têm toma ativa registada no dia. */
     @Query("""
             select r.medicacaoPlano.id from Registo r

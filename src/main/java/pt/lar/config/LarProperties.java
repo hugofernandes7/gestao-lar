@@ -6,6 +6,7 @@ import java.util.Map;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 import pt.lar.models.Horario;
+import pt.lar.models.MomentoHidratacao;
 import pt.lar.models.Refeicao;
 
 @ConfigurationProperties(prefix = "lar")
@@ -19,6 +20,7 @@ public record LarProperties(
         @DefaultValue Demo demo,
         @DefaultValue Refeicoes refeicoes,
         @DefaultValue Peso peso,
+        @DefaultValue Hidratacao hidratacao,
         @DefaultValue Vigilancia vigilancia) {
 
     /** Que registos exigem sessão de PIN (valores por defeito; editáveis no /admin, página "Definições"). */
@@ -40,6 +42,12 @@ public record LarProperties(
      * refeições seguidas «Pouco»/«Recusou» disparam o alerta.
      */
     public record Refeicoes(Map<Refeicao, LocalTime> inicio, @DefaultValue("3") int poucasSeguidas) {}
+
+    /**
+     * Hidratação: hora a que começa cada momento (manhã, tarde, noite). O momento de um registo é o último que já
+     * começou nesse dia; antes do primeiro, a manhã.
+     */
+    public record Hidratacao(Map<MomentoHidratacao, LocalTime> inicio) {}
 
     /** Peso: perda de mais de {@code perdaPercentagem} % dentro de {@code perdaDias} dias gera alerta. */
     public record Peso(@DefaultValue("5") BigDecimal perdaPercentagem, @DefaultValue("30") int perdaDias) {}

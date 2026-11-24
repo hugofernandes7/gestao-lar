@@ -94,6 +94,7 @@ public abstract class BaseIntegracaoTest {
     @Autowired protected DefinicoesService definicoesService;
     @Autowired protected pt.lar.repositories.UtenteCondicaoRepository utenteCondicoes;
     @Autowired protected pt.lar.repositories.AcessoSaudeRepository acessosSaude;
+    @Autowired protected pt.lar.repositories.FichaEmergenciaEmitidaRepository fichasEmitidas;
     @Autowired protected pt.lar.repositories.PesoRepository pesosRepo;
     @Autowired protected pt.lar.repositories.VigilanciaRepository vigilanciaVerificacoes;
     @Autowired protected pt.lar.repositories.VigilanciaPlanoRepository vigilanciaPlanos;
@@ -113,6 +114,7 @@ public abstract class BaseIntegracaoTest {
 
     @BeforeEach
     void limparEFixarRelogio() {
+        fichasEmitidas.deleteAllInBatch();
         acessosSaude.deleteAllInBatch();
         utenteCondicoes.deleteAllInBatch();
         pesosRepo.deleteAllInBatch();

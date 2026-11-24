@@ -21,6 +21,9 @@ public class Registo {
     /** REFEICAO: qual refeição (o detalhe guarda a quantidade). */
     @Enumerated(EnumType.STRING)
     private Refeicao refeicao;
+    /** HIDRATACAO: o momento do dia (o detalhe guarda o nível, "0" a "3"). */
+    @Enumerated(EnumType.STRING)
+    private MomentoHidratacao momento;
     private String nota;
     private String descricao;
     @ManyToOne(fetch = FetchType.LAZY)
@@ -76,6 +79,8 @@ public class Registo {
     public void setSubstituiId(Long id) { this.substituiId = id; }
     public Refeicao getRefeicao() { return refeicao; }
     public void setRefeicao(Refeicao refeicao) { this.refeicao = refeicao; }
+    public MomentoHidratacao getMomento() { return momento; }
+    public void setMomento(MomentoHidratacao momento) { this.momento = momento; }
     public Long getId() { return id; }
     public Utente getUtente() { return utente; }
     public TipoRegisto getTipo() { return tipo; }

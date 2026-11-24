@@ -51,6 +51,20 @@
         </tr>
         </tbody>
     </table>
+
+    <h2>Fichas de emergência emitidas</h2>
+    <p class="suave">Cada vez que a ficha de emergência (PDF) é descarregada, no tablet (com PIN) ou aqui na gestão, fica registado.</p>
+    <p class="suave" th:if="${fichasEmergencia.isEmpty()}">Ainda nenhuma ficha de emergência foi emitida.</p>
+    <table class="tabela tabela-compacta" th:unless="${fichasEmergencia.isEmpty()}">
+        <thead><tr><th>Data e hora</th><th>Emitida por</th><th>Utente</th></tr></thead>
+        <tbody>
+        <tr th:each="e : ${fichasEmergencia}">
+            <td th:text="${e.quando()}">03/11/2026 10:00</td>
+            <td th:text="${e.quem()}">Ana Ferreira (nº 1)</td>
+            <td th:text="${e.utente() + ' (quarto ' + e.quarto() + ')'}">Maria (quarto 1)</td>
+        </tr>
+        </tbody>
+    </table>
 </main>
 </body>
 </html>

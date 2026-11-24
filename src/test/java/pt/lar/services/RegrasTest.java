@@ -25,7 +25,7 @@ class RegrasTest {
     private static final LarProperties PROPS = new LarProperties("Europe/Lisbon",
             Map.of(Horario.MANHA, LocalTime.of(9, 0), Horario.ALMOCO, LocalTime.of(13, 0),
                     Horario.JANTAR, LocalTime.of(19, 0), Horario.DEITAR, LocalTime.of(22, 0)),
-            60, 48, SEM_REGISTO, new LarProperties.Sessao(2), new LarProperties.Demo("x"), new LarProperties.Refeicoes(null, 3), new LarProperties.Peso(new java.math.BigDecimal("5"), 30), new LarProperties.Vigilancia(java.util.List.of(1, 4, 8, 24), 30));
+            60, 48, SEM_REGISTO, new LarProperties.Sessao(2), new LarProperties.Demo("x"), new LarProperties.Refeicoes(null, 3), new LarProperties.Peso(new java.math.BigDecimal("5"), 30), new LarProperties.Hidratacao(null), new LarProperties.Vigilancia(java.util.List.of(1, 4, 8, 24), 30));
 
     private static Instant lisboa(String dataHora) {
         return LocalDateTime.parse(dataHora).atZone(LISBOA).toInstant();
@@ -121,7 +121,7 @@ class RegrasTest {
         @Test
         void aJanelaVemDaConfiguracao() {
             LarProperties vinteQuatro = new LarProperties("Europe/Lisbon", PROPS.horarios(), 60, 24,
-                    SEM_REGISTO, new LarProperties.Sessao(2), new LarProperties.Demo("x"), new LarProperties.Refeicoes(null, 3), new LarProperties.Peso(new java.math.BigDecimal("5"), 30), new LarProperties.Vigilancia(java.util.List.of(1, 4, 8, 24), 30));
+                    SEM_REGISTO, new LarProperties.Sessao(2), new LarProperties.Demo("x"), new LarProperties.Refeicoes(null, 3), new LarProperties.Peso(new java.math.BigDecimal("5"), 30), new LarProperties.Hidratacao(null), new LarProperties.Vigilancia(java.util.List.of(1, 4, 8, 24), 30));
             Regras r = new Regras(Clock.fixed(agora, LISBOA), vinteQuatro);
             assertThat(r.ocorrenciaRecente(lisboa("2026-11-02T11:59"), agora)).isFalse();
             assertThat(r.ocorrenciaRecente(lisboa("2026-11-02T12:01"), agora)).isTrue();

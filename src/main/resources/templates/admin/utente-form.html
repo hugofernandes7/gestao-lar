@@ -19,6 +19,40 @@
             <input type="text" name="quarto" th:value="${form.quarto}" maxlength="10" required>
         </label>
 
+        <fieldset class="emergencia">
+            <legend>Dados para a ficha de emergência (INEM)</legend>
+            <p class="suave pequeno">Opcionais. Aparecem na ficha de emergência em PDF; o que faltar fica assinalado como «não registado».</p>
+            <label>Data de nascimento
+                <input type="date" name="dataNascimento" th:value="${form.dataNascimento}" min="1900-01-01">
+            </label>
+            <label>Sexo
+                <select name="sexo">
+                    <option value="" th:selected="${form.sexo == null or form.sexo.isEmpty()}">Não indicado</option>
+                    <option value="F" th:selected="${'F'.equals(form.sexo)}">Feminino</option>
+                    <option value="M" th:selected="${'M'.equals(form.sexo)}">Masculino</option>
+                </select>
+            </label>
+            <label>Número de utente do SNS
+                <input type="text" name="numeroUtenteSns" th:value="${form.numeroUtenteSns}" maxlength="20" inputmode="numeric">
+            </label>
+            <label>Contacto de emergência — nome
+                <input type="text" name="contactoNome" th:value="${form.contactoNome}" maxlength="120">
+            </label>
+            <label>Contacto de emergência — parentesco
+                <input type="text" name="contactoParentesco" th:value="${form.contactoParentesco}" maxlength="60" placeholder="Filha, sobrinho…">
+            </label>
+            <label>Contacto de emergência — telefone
+                <input type="tel" name="contactoTelefone" th:value="${form.contactoTelefone}" maxlength="30">
+            </label>
+            <label>Médico assistente / centro de saúde
+                <input type="text" name="medicoAssistente" th:value="${form.medicoAssistente}" maxlength="120">
+            </label>
+            <label>Outras informações importantes para a equipa de emergência
+                <textarea name="infoEmergencia" rows="4" maxlength="1000" th:text="${form.infoEmergencia}"
+                          placeholder="Decisões já tomadas, diretivas, situações a ter em conta…"></textarea>
+            </label>
+        </fieldset>
+
         <div class="campo-foto">
             <img class="foto-previa" th:if="${utente != null}" th:src="@{/fotos/{id}(id=${utente.id})}" alt="Foto atual">
             <div>

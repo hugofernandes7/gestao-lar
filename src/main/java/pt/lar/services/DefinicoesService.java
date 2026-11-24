@@ -34,7 +34,7 @@ public class DefinicoesService {
     public enum Exigencia {
         OCORRENCIA("registo.exige-sessao.ocorrencia", "Ocorrências (queda e dor)"),
         TOMA("registo.exige-sessao.toma", "Medicação (toma)"),
-        REFEICAO("registo.exige-sessao.refeicao", "Refeições"),
+        REFEICAO("registo.exige-sessao.refeicao", "Refeições e hidratação"),
         PESO("registo.exige-sessao.peso", "Peso");
 
         public final String chave;
@@ -51,7 +51,7 @@ public class DefinicoesService {
                 case BANHO -> Optional.empty();
                 case QUEDA, DOR -> Optional.of(OCORRENCIA);
                 case TOMA -> Optional.of(TOMA);
-                case REFEICAO -> Optional.of(REFEICAO);
+                case REFEICAO, HIDRATACAO -> Optional.of(REFEICAO);    // a hidratação segue a regra das refeições
                 case PESO -> Optional.of(PESO);
                 case VIGILANCIA -> Optional.of(TOMA);       // como a medicação: a vigilância exige sempre sessão
             };

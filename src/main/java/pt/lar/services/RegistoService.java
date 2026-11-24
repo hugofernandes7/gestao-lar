@@ -15,6 +15,8 @@ import org.springframework.web.server.ResponseStatusException;
 import pt.lar.models.Funcionario;
 import pt.lar.models.LocalDor;
 import pt.lar.models.MedicacaoPlano;
+import pt.lar.models.MomentoHidratacao;
+import pt.lar.models.NivelHidratacao;
 import pt.lar.models.Peso;
 import pt.lar.models.QuantidadeRefeicao;
 import pt.lar.models.Refeicao;
@@ -46,7 +48,10 @@ public class RegistoService {
 
     public enum ResultadoDesfazer { DESFEITO, JA_ANULADO, FORA_DE_PRAZO, SO_QUEM_REGISTOU }
 
-    /** NOVA: registada. SUBSTITUIDA: havia uma e foi anulada. JA_EXISTE: havia uma e não se mexeu (falta confirmar). */
+    /**
+     * NOVA: registada. SUBSTITUIDA: havia uma e foi anulada. JA_EXISTE: havia uma e não se mexeu (falta confirmar).
+     * Serve a refeição e a hidratação.
+     */
     public enum EstadoRefeicao { NOVA, SUBSTITUIDA, JA_EXISTE }
 
     /** {@code existente}: o registo que já lá estava (se havia). */
@@ -189,6 +194,52 @@ public class RegistoService {
         }
     }
 
+    /**
+     * Hidratação (escala 0–3) de um momento do dia. Como a refeição: no máximo um registo por utente, dia e momento
+     * (índice único); se já existe e {@code substituir} é false devolve JA_EXISTE para a funcionária confirmar; com
+     * {@code substituir}, anula o anterior e cria o novo na mesma transação (desfazer repõe o anterior).
+     */
+    public ResultadoRefeicao hidratacao(Long utenteId, MomentoHidratacao momento, NivelHidratacao nivel,
+                                        boolean substituir, Funcionario por) {
+        exigirSessao(utenteId, TipoRegisto.HIDRATACAO, por);
+        Utente u = utenteAtivo(utenteId);
+        Instant agora = clock.instant();
+        LocalDate dia = regras.diaDe(agora);
+        Optional<Registo> existente = registos.findFirstByUtenteIdAndTipoAndMomentoAndDiaAndAnuladoFalse(
+                utenteId, TipoRegisto.HIDRATACAO, momento, dia);
+        if (existente.isPresent() && !substituir) {
+            return new ResultadoRefeicao(existente.get(), EstadoRefeicao.JA_EXISTE, existente.get());
+        }
+        try {
+            if (existente.isEmpty()) {
+                return new ResultadoRefeicao(registos.saveAndFlush(
+                        novaHidratacao(u, momento, nivel, agora, dia, por)), EstadoRefeicao.NOVA, null);
+            }
+            Long anteriorId = existente.get().getId();
+            Registo nova = transacao.execute(estado -> {
+                Registo anterior = registos.findById(anteriorId).orElseThrow();
+                if (!anterior.isAnulado()) anterior.anular(agora, null);
+                registos.saveAndFlush(anterior);               // o UPDATE tem de sair antes do INSERT (índice único)
+                Registo n = novaHidratacao(u, momento, nivel, agora, dia, por);
+                n.setSubstituiId(anteriorId);
+                return registos.saveAndFlush(n);
+            });
+            return new ResultadoRefeicao(nova, EstadoRefeicao.SUBSTITUIDA, existente.get());
+        } catch (DataIntegrityViolationException e) {         // outro tablet foi mais rápido
+            Registo outro = registos.findFirstByUtenteIdAndTipoAndMomentoAndDiaAndAnuladoFalse(
+                    utenteId, TipoRegisto.HIDRATACAO, momento, dia).orElseThrow(() -> e);
+            return new ResultadoRefeicao(outro, EstadoRefeicao.JA_EXISTE, outro);
+        }
+    }
+
+    private static Registo novaHidratacao(Utente u, MomentoHidratacao momento, NivelHidratacao nivel, Instant agora,
+                                          LocalDate dia, Funcionario por) {
+        Registo r = new Registo(u, TipoRegisto.HIDRATACAO, nivel.codigo(), "Hidratação " + momento.getEtiqueta().toLowerCase(),
+                null, agora, dia);
+        r.setMomento(momento);
+        return comAutor(r, por);
+    }
+
     private static Registo novaRefeicao(Utente u, Refeicao refeicao, QuantidadeRefeicao q, Instant agora, LocalDate dia,
                                         Funcionario por) {
         Registo r = new Registo(u, TipoRegisto.REFEICAO, q.name(), refeicao.getEtiqueta(), null, agora, dia);
@@ -253,8 +304,11 @@ public class RegistoService {
         registos.saveAndFlush(r);
         Registo anterior = registos.findById(r.getSubstituiId()).orElse(null);
         if (anterior == null || !anterior.isAnulado()) return;
-        boolean haOutroAtivo = registos.findFirstByUtenteIdAndTipoAndRefeicaoAndDiaAndAnuladoFalse(
-                anterior.getUtente().getId(), TipoRegisto.REFEICAO, anterior.getRefeicao(), anterior.getDia()).isPresent();
+        boolean haOutroAtivo = anterior.getTipo() == TipoRegisto.HIDRATACAO
+                ? registos.findFirstByUtenteIdAndTipoAndMomentoAndDiaAndAnuladoFalse(
+                        anterior.getUtente().getId(), TipoRegisto.HIDRATACAO, anterior.getMomento(), anterior.getDia()).isPresent()
+                : registos.findFirstByUtenteIdAndTipoAndRefeicaoAndDiaAndAnuladoFalse(
+                        anterior.getUtente().getId(), TipoRegisto.REFEICAO, anterior.getRefeicao(), anterior.getDia()).isPresent();
         if (!haOutroAtivo) anterior.reativar();
     }
 

@@ -29,6 +29,7 @@
                 <a class="botao botao-claro" th:href="@{/admin/utentes/{id}/condicoes(id=${u.id})}">Condições</a>
                 <a class="botao botao-claro" th:href="@{/admin/utentes/{id}/peso(id=${u.id})}">Peso</a>
                 <a class="botao botao-claro" th:href="@{/admin/utentes/{id}/plano(id=${u.id})}">Plano de medicação</a>
+                <a class="botao" th:href="@{/admin/utentes/{id}/ficha-emergencia.pdf(id=${u.id})}">Ficha de emergência (PDF)</a>
                 <form th:action="@{/admin/utentes/{id}/ativo(id=${u.id})}" method="post" class="em-linha">
                     <input type="hidden" name="ativo" th:value="${!u.ativo}">
                     <button type="submit" class="botao botao-claro" th:text="${u.ativo} ? 'Desativar' : 'Reativar'">Desativar</button>

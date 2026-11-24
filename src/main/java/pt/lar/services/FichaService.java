@@ -16,6 +16,8 @@ import org.springframework.web.server.ResponseStatusException;
 import pt.lar.models.Horario;
 import pt.lar.models.LocalDor;
 import pt.lar.models.MedicacaoPlano;
+import pt.lar.models.MomentoHidratacao;
+import pt.lar.models.NivelHidratacao;
 import pt.lar.models.QuantidadeRefeicao;
 import pt.lar.models.Refeicao;
 import pt.lar.models.Registo;
@@ -35,7 +37,7 @@ import pt.lar.services.Regras;
 public class FichaService {
 
     public enum Painel {
-        NENHUM, QUEDA, DOR, MEDICACAO, NOTA, REFEICAO, VIGILANCIA, VIGILANCIA_ALERTA;
+        NENHUM, QUEDA, DOR, MEDICACAO, NOTA, REFEICAO, HIDRATACAO, VIGILANCIA, VIGILANCIA_ALERTA;
 
         public static Painel de(String s) {
             if (s == null) return NENHUM;
@@ -106,6 +108,20 @@ public class FichaService {
         }
     }
 
+    /** Um momento na lista de escolha da hidratação: {@code existente} é o nível já registado hoje (ou null). */
+    public record OpcaoHidratacao(MomentoHidratacao momento, String etiqueta, String existente) {}
+
+    /**
+     * Painel da hidratação: o momento escolhido (o detetado pela hora, ou o que a funcionária escolheu), o que já está
+     * registado nele, e o pedido de confirmação quando se vai substituir.
+     */
+    public record PainelHidratacao(MomentoHidratacao escolhido, String etiqueta, String existente, String horaExistente,
+                                   NivelHidratacao confirmar, List<OpcaoHidratacao> opcoes) {
+        public List<NivelHidratacao> niveis() {
+            return List.of(NivelHidratacao.values());
+        }
+    }
+
     /** Separador "Sobre mim". */
     public record SobreMim(String tratamento, String gostos) {}
 
@@ -113,7 +129,8 @@ public class FichaService {
                         List<GrupoToma> grupos, String planoAtualizado, List<LinhaHoje> hoje, Long registoNota,
                         String notaAtual, Aba aba, Atencao atencao, SobreMim sobre,
                         List<SaudeService.CartaoCondicao> saude, String textoRefeicao, PainelRefeicao refeicao,
-                        PesoService.Resumo peso, VigilanciaService.Proxima vigilancia) {
+                        PesoService.Resumo peso, VigilanciaService.Proxima vigilancia, String textoHidratacao,
+                        PainelHidratacao hidratacao) {
         public List<LocalDor> locaisDor() {
             return List.of(LocalDor.values());
         }
@@ -131,11 +148,13 @@ public class FichaService {
     private final RefeicaoService refeicoes;
     private final PesoService pesos;
     private final VigilanciaService vigilanciaService;
+    private final HidratacaoService hidratacaoService;
 
     public FichaService(UtenteRepository utentes, RegistoRepository registos, MedicacaoPlanoRepository planos,
                         Regras regras, Formatos fmt, Clock clock, pt.lar.config.LarProperties props,
                         PerfilService perfis, SaudeService saudeService, RefeicaoService refeicoes, PesoService pesos,
-                        VigilanciaService vigilanciaService) {
+                        VigilanciaService vigilanciaService, HidratacaoService hidratacaoService) {
+        this.hidratacaoService = hidratacaoService;
         this.vigilanciaService = vigilanciaService;
         this.refeicoes = refeicoes;
         this.pesos = pesos;
@@ -163,7 +182,7 @@ public class FichaService {
      * nem o painel, nem o plano, nem o nome dos medicamentos na secção "Hoje".
      */
     public Ficha montar(Long utenteId, Painel painel, Mensagem mensagem, Long registoNota, Aba aba, boolean comSessao) {
-        return montar(utenteId, painel, mensagem, registoNota, aba, comSessao, null, null);
+        return montar(utenteId, painel, mensagem, registoNota, aba, comSessao, (Refeicao) null, (QuantidadeRefeicao) null);
     }
 
     /**
@@ -172,6 +191,18 @@ public class FichaService {
      */
     public Ficha montar(Long utenteId, Painel painel, Mensagem mensagem, Long registoNota, Aba aba, boolean comSessao,
                         Refeicao refeicaoEscolhida, QuantidadeRefeicao confirmar) {
+        return montar(utenteId, painel, mensagem, registoNota, aba, comSessao, refeicaoEscolhida, confirmar, null, null);
+    }
+
+    /** Com o painel da hidratação: {@code momentoEscolhido} (null = o detetado pela hora) e {@code nivelConfirmar}. */
+    public Ficha montar(Long utenteId, Painel painel, Mensagem mensagem, Long registoNota, Aba aba, boolean comSessao,
+                        MomentoHidratacao momentoEscolhido, NivelHidratacao nivelConfirmar) {
+        return montar(utenteId, painel, mensagem, registoNota, aba, comSessao, null, null, momentoEscolhido, nivelConfirmar);
+    }
+
+    private Ficha montar(Long utenteId, Painel painel, Mensagem mensagem, Long registoNota, Aba aba, boolean comSessao,
+                         Refeicao refeicaoEscolhida, QuantidadeRefeicao confirmar,
+                         MomentoHidratacao momentoEscolhido, NivelHidratacao nivelConfirmar) {
         if (painel == Painel.MEDICACAO && !comSessao) painel = Painel.NENHUM;
         if (aba == Aba.SAUDE && !comSessao) aba = Aba.REGISTOS;   // a Saúde nunca se mostra sem sessão de PIN
         if (aba != Aba.REGISTOS) painel = Painel.NENHUM;          // "Sobre mim" e "Saúde" são só leitura: sem painéis
@@ -218,6 +249,26 @@ public class FichaService {
         for (Registo r : doDia) if (r.getTipo() == TipoRegisto.REFEICAO && r.getRefeicao() != null) refeicoesDeHoje.put(r.getRefeicao(), r);
         Registo daDetetada = refeicoesDeHoje.get(detetada);
         String textoRefeicao = daDetetada == null ? null : RefeicaoService.texto(daDetetada);
+        // Hidratação: o botão mostra «Hidratação tarde: 2 (Razoável)» se o momento de agora já está registado
+        MomentoHidratacao momentoAtual = hidratacaoService.atual(agora);
+        Map<MomentoHidratacao, Registo> hidratacoesDeHoje = new EnumMap<>(MomentoHidratacao.class);
+        for (Registo r : doDia) if (r.getTipo() == TipoRegisto.HIDRATACAO && r.getMomento() != null) hidratacoesDeHoje.put(r.getMomento(), r);
+        Registo daAtual = hidratacoesDeHoje.get(momentoAtual);
+        String textoHidratacao = daAtual == null ? null : HidratacaoService.textoCurto(daAtual);
+        PainelHidratacao painelHidratacao = null;
+        if (painel == Painel.HIDRATACAO) {
+            MomentoHidratacao escolhido = momentoEscolhido != null ? momentoEscolhido : momentoAtual;
+            Registo existente = hidratacoesDeHoje.get(escolhido);
+            List<OpcaoHidratacao> opcoes = new ArrayList<>();
+            for (MomentoHidratacao m : MomentoHidratacao.values()) {
+                Registo x = hidratacoesDeHoje.get(m);
+                opcoes.add(new OpcaoHidratacao(m, m.getEtiqueta(), x == null ? null
+                        : NivelHidratacao.de(x.getDetalhe()).map(n -> n.getValor() + " · " + n.getEtiqueta()).orElse(null)));
+            }
+            painelHidratacao = new PainelHidratacao(escolhido, escolhido.getEtiqueta(),
+                    existente == null ? null : NivelHidratacao.de(existente.getDetalhe()).map(n -> n.getValor() + " (" + n.getEtiqueta() + ")").orElse(null),
+                    existente == null ? null : fmt.hora(existente.getDataHora()), existente == null ? null : nivelConfirmar, opcoes);
+        }
         // Vigilância pós-queda: a próxima verificação aparece no aviso da queda; o painel só abre se houver uma pendente
         VigilanciaService.Proxima proximaVigilancia = vigilanciaService.proxima(utenteId).orElse(null);
         if ((painel == Painel.VIGILANCIA && (proximaVigilancia == null || !comSessao)) && painel != Painel.VIGILANCIA_ALERTA) painel = Painel.NENHUM;
@@ -258,7 +309,8 @@ public class FichaService {
         return new Ficha(utente, avisos, banho, painel, mensagem, grupos, textoPlanoAtualizado(plano), hoje,
                 registoNota, notaAtual, aba, atencao, sobre,
                 aba == Aba.SAUDE ? saudeService.cartoes(utenteId) : null, textoRefeicao, painelRefeicao,
-                aba == Aba.SAUDE ? pesos.resumo(utenteId).orElse(null) : null, proximaVigilancia);
+                aba == Aba.SAUDE ? pesos.resumo(utenteId).orElse(null) : null, proximaVigilancia,
+                textoHidratacao, painelHidratacao);
     }
 
     private Atencao atencao(UtentePerfil p, List<String> avisosAcao, List<String> alertas) {
@@ -293,6 +345,7 @@ public class FichaService {
             case DOR -> "Dor / mal-estar — " + localDor(r).toLowerCase();
             case TOMA -> comSessao ? "Medicação: " + r.getDescricao() : "Medicação dada";
             case REFEICAO -> RefeicaoService.texto(r);
+            case HIDRATACAO -> HidratacaoService.texto(r);
             case PESO -> comSessao ? "Peso registado" : null;     // o valor nunca aparece aqui; só na Saúde
             case VIGILANCIA -> r.getDescricao();                    // só «Vigilância 1 de 4»: as respostas ficam no admin
         };

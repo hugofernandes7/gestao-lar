@@ -16,6 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 import pt.lar.config.LarProperties;
 import pt.lar.models.Funcionario;
 import pt.lar.models.Horario;
+import pt.lar.models.MomentoHidratacao;
+import pt.lar.models.NivelHidratacao;
 import pt.lar.models.QuantidadeRefeicao;
 import pt.lar.models.Refeicao;
 import pt.lar.models.MedicacaoPlano;
@@ -91,6 +93,7 @@ public class DemoDataService {
     private final VigilanciaService vigilancia;
     private final pt.lar.repositories.VigilanciaRepository verificacoes;
     private final pt.lar.repositories.VigilanciaPlanoRepository planosVigilancia;
+    private final pt.lar.repositories.FichaEmergenciaEmitidaRepository fichasEmitidas;
 
     public DemoDataService(UtenteRepository utentes, UtilizadorGestaoRepository utilizadores,
                            MedicacaoPlanoRepository planos, MedicacaoPlanoAuditoriaRepository auditoria,
@@ -99,7 +102,9 @@ public class DemoDataService {
                            CondicaoProtocoloRepository catalogoCondicoes, UtenteCondicaoRepository condicoes,
                            AcessoSaudeRepository acessosSaude, pt.lar.repositories.PesoRepository pesos,
                            VigilanciaService vigilancia, pt.lar.repositories.VigilanciaRepository verificacoes,
-                           pt.lar.repositories.VigilanciaPlanoRepository planosVigilancia) {
+                           pt.lar.repositories.VigilanciaPlanoRepository planosVigilancia,
+                           pt.lar.repositories.FichaEmergenciaEmitidaRepository fichasEmitidas) {
+        this.fichasEmitidas = fichasEmitidas;
         this.vigilancia = vigilancia;
         this.verificacoes = verificacoes;
         this.planosVigilancia = planosVigilancia;
@@ -122,6 +127,7 @@ public class DemoDataService {
     /** Apaga os dados clínicos e volta a gerar a demo (os utilizadores de gestão mantêm-se). */
     @Transactional
     public void repor() {
+        fichasEmitidas.deleteAllInBatch();
         acessosSaude.deleteAllInBatch();
         condicoes.deleteAllInBatch();
         pesos.deleteAllInBatch();
@@ -148,7 +154,9 @@ public class DemoDataService {
         // 1. Utentes (quartos 1..15)
         List<Utente> lista = new ArrayList<>();
         for (int i = 0; i < NOMES.length; i++) {
-            lista.add(utentes.save(new Utente(NOMES[i], String.valueOf(i + 1))));
+            Utente u = new Utente(NOMES[i], String.valueOf(i + 1));
+            identificacaoDeDemonstracao(u, i, hoje);
+            lista.add(utentes.save(u));
         }
 
         // 2. Planos de medicação (1 a 5 linhas por utente) + auditoria inicial
@@ -242,6 +250,7 @@ public class DemoDataService {
 
         // 6c. Refeições dos dias anteriores (um utente que come pouco) e pesagens (um utente com perda de peso)
         refeicoesEPesosDeDemonstracao(lista, hoje, zona);
+        hidratacaoDeDemonstracao(lista, hoje, zona);
 
         // 7. Quem registou: as funcionárias de demonstração (se existirem) alternam; um em cada cinco fica sem sessão (nulo)
         List<Funcionario> equipa = funcionarios.findAllByOrderByNumeroAsc();
@@ -252,7 +261,44 @@ public class DemoDataService {
         }
     }
 
-    private static final int IDX_COME_POUCO = 7;     // demência avançada: as últimas 3 refeições foram «Pouco» ou «Recusou»
+    /** Hidratação dos 7 dias anteriores (só dias anteriores: a secção «Hoje» e o botão ficam por preencher). */
+    private void hidratacaoDeDemonstracao(List<Utente> lista, LocalDate hoje, ZoneId zona) {
+        Random rnd = new Random(11);
+        int[][] horas = {{9, 40}, {15, 10}, {20, 30}};
+        MomentoHidratacao[] momentos = MomentoHidratacao.values();
+        for (int i = 0; i < lista.size(); i++) {
+            for (int d = 7; d >= 1; d--) {
+                for (int k = 0; k < momentos.length; k++) {
+                    int p = rnd.nextInt(100);
+                    NivelHidratacao n = i == IDX_COME_POUCO
+                            ? (p < 20 ? NivelHidratacao.NADA : p < 70 ? NivelHidratacao.POUCO : NivelHidratacao.RAZOAVEL)
+                            : (p < 3 ? NivelHidratacao.NADA : p < 15 ? NivelHidratacao.POUCO : p < 50 ? NivelHidratacao.RAZOAVEL : NivelHidratacao.BEM);
+                    LocalDate dia = hoje.minusDays(d);
+                    Instant quando = dia.atTime(horas[k][0], horas[k][1]).plusMinutes(rnd.nextInt(25)).atZone(zona).toInstant();
+                    Registo r = new Registo(lista.get(i), TipoRegisto.HIDRATACAO, n.codigo(),
+                            "Hidratação " + momentos[k].getEtiqueta().toLowerCase(), null, quando, dia);
+                    r.setMomento(momentos[k]);
+                    registos.save(r);
+                }
+            }
+        }
+    }
+
+    private static final String[] PARENTESCOS ={"Filha", "Filho", "Sobrinha", "Neto", "Filha", "Marido", "Filho", "Filha"};
+
+    /** Dados fictícios para a ficha de emergência: idade, SNS, contacto e médico (nada disto é real). */
+    private static void identificacaoDeDemonstracao(Utente u, int i, LocalDate hoje) {
+        u.setSexo(i % 2 == 0 ? pt.lar.models.Sexo.F : pt.lar.models.Sexo.M);   // os nomes da lista alternam: feminino nos índices pares
+        u.setDataNascimento(LocalDate.of(1930 + (i * 5) % 17, 1 + (i * 7) % 12, 1 + (i * 11) % 28));
+        u.setNumeroUtenteSns(String.format("999000%03d", i + 1));
+        u.setContactoNome("[DEMO] Contacto do quarto " + (i + 1));
+        u.setContactoParentesco(PARENTESCOS[i % PARENTESCOS.length]);
+        u.setContactoTelefone(String.format("910 000 %03d", i + 1));
+        u.setMedicoAssistente("[DEMO] Dr. Silva — Centro de Saúde");
+        if (i == IDX_COME_POUCO) u.setInfoEmergencia("[DEMO] Não consegue dizer sozinho onde tem dor. Convém ir acompanhado por alguém que o conheça.");
+    }
+
+    private static final int IDX_COME_POUCO = 7;    // demência avançada: as últimas 3 refeições foram «Pouco» ou «Recusou»
     private static final int IDX_PERDA_DE_PESO = 11;  // perdeu mais de 5 % em 30 dias
 
     private void refeicoesEPesosDeDemonstracao(List<Utente> lista, LocalDate hoje, ZoneId zona) {

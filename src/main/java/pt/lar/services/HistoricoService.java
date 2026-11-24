@@ -71,6 +71,7 @@ public class HistoricoService {
             case DOR -> "Dor / mal-estar";
             case TOMA -> "Toma";
             case REFEICAO -> "Refeição";
+            case HIDRATACAO -> "Hidratação";
             case PESO -> "Peso";
             case VIGILANCIA -> "Vigilância";
         };
@@ -80,6 +81,7 @@ public class HistoricoService {
             case DOR -> LocalDor.de(r.getDetalhe()).map(LocalDor::getEtiqueta).orElse("Outro");
             case TOMA -> r.getDescricao() == null ? "" : r.getDescricao();
             case REFEICAO -> RefeicaoService.texto(r);
+            case HIDRATACAO -> HidratacaoService.texto(r);
             case PESO -> "";
             case VIGILANCIA -> textoVigilancia == null ? r.getDescricao() : textoVigilancia;
         };

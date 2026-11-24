@@ -209,8 +209,12 @@
                 <span th:text="${f.textoRefeicao() != null ? f.textoRefeicao() : 'Refeição'}">Refeição</span>
             </button>
 
-            <!-- (o lugar de «Humor» fica livre até à Etapa 10: a grelha é 3×2 e as posições não mudam) -->
-            <span class="btn-vazio" aria-hidden="true"></span>
+            <!-- Hidratação: sem PIN (como a refeição). 1.º toque abre o painel já no momento certo pela hora; 2.º toque = nível 0–3. -->
+            <button type="button" class="btn btn-acao" th:classappend="${(f.painel().name() == 'HIDRATACAO' ? 'ativo ' : '') + (f.textoHidratacao() != null ? 'btn-feito' : '')}"
+                    th:hx-get="@{${base} + '?painel=hidratacao'}">
+                <th:block th:replace="~{tablet/icones :: ic(${f.textoHidratacao() != null ? 'ok' : 'copo'})}"/>
+                <span th:text="${f.textoHidratacao() != null ? f.textoHidratacao() : 'Hidratação'}">Hidratação</span>
+            </button>
 
             <button type="button" class="btn btn-acao" th:classappend="${f.painel().name() == 'QUEDA'} ? 'ativo'"
                     th:hx-get="@{${base} + '?painel=queda'}">
@@ -258,6 +262,12 @@
 
             <!-- Separador "Saúde" (só com sessão de PIN; só leitura): condições e o que fazer. -->
             <section class="saude" th:if="${f.aba().name() == 'SAUDE'}" aria-label="Saúde">
+
+                <!-- Ficha de emergência (INEM): PDF com tudo o que a equipa de emergência precisa. Cada descarga fica registada. -->
+                <a class="btn btn-opcao btn-emergencia" th:href="@{${base} + '/ficha-emergencia.pdf'}" download>
+                    <span>Ficha de emergência (PDF)</span>
+                    <small>Para entregar ao INEM</small>
+                </a>
 
                 <!-- Peso (enfermagem): teclado numérico próprio (1 decimal); mostra o último peso e a variação. -->
                 <article class="saude-peso" aria-label="Peso" data-teclado data-decimais="1" data-min="20" data-max="250">
@@ -425,6 +435,52 @@
                                     th:hx-post="@{${base} + '/refeicao/' + ${r.escolhida().name()} + '/' + ${q.name()}}">
                                 <th:block th:replace="~{tablet/icones :: ic(${'prato-' + #strings.toLowerCase(q.name())})}"/>
                                 <span th:text="${q.etiqueta}">Tudo</span>
+                            </button>
+                        </div>
+                    </th:block>
+                    <button type="button" class="btn btn-secundario" th:hx-get="@{${base}}">Cancelar</button>
+                </div>
+
+                <!-- Painel: Hidratação. 2.º toque = nível (0 a 3); o chip troca de momento; se já existe, pede confirmação. -->
+                <div class="painel painel-hidratacao" th:if="${f.painel().name() == 'HIDRATACAO'}" th:with="h=${f.hidratacao()}">
+                    <th:block th:if="${h.confirmar() != null}">
+                        <h2>Substituir o registo?</h2>
+                        <p class="refeicao-aviso">
+                            A hidratação da <strong th:text="${#strings.toLowerCase(h.etiqueta())}">tarde</strong> já está registada como
+                            <strong th:text="${h.existente()}">2 (Razoável)</strong> (às <span th:text="${h.horaExistente()}">15:10</span>).
+                            Substituir por <strong th:text="${h.confirmar().valor + ' (' + h.confirmar().etiqueta + ')'}">3 (Bem)</strong>?
+                        </p>
+                        <div class="opcoes">
+                            <button type="button" class="btn btn-opcao"
+                                    th:hx-post="@{${base} + '/hidratacao/' + ${h.escolhido().name()} + '/' + ${h.confirmar().valor} + '/substituir'}">Substituir</button>
+                            <button type="button" class="btn btn-opcao btn-opcao-neutro"
+                                    th:hx-get="@{${base} + '/hidratacao/' + ${h.escolhido().name()}}">Cancelar</button>
+                        </div>
+                    </th:block>
+
+                    <th:block th:unless="${h.confirmar() != null}">
+                        <h2>Quanto bebeu? <small th:text="${h.etiqueta()}">Tarde</small></h2>
+
+                        <!-- Chip de cada momento: o detetado pela hora vem marcado; trocar custa 1 toque (só aqui). -->
+                        <div class="chips-refeicao chips-3" role="group" aria-label="Momento do dia">
+                            <button type="button" class="btn btn-chip" th:each="o : ${h.opcoes()}"
+                                    th:classappend="${o.momento() == h.escolhido()} ? 'chip-ativo'"
+                                    th:attr="aria-pressed=${o.momento() == h.escolhido()}"
+                                    th:hx-get="@{${base} + '/hidratacao/' + ${o.momento().name()}}">
+                                <span th:text="${o.etiqueta()}">Tarde</span>
+                                <small th:if="${o.existente() != null}" th:text="${o.existente()}">2 · Razoável</small>
+                            </button>
+                        </div>
+
+                        <p class="refeicao-aviso" th:if="${h.existente() != null}">
+                            Já registado às <span th:text="${h.horaExistente()}">15:10</span>: <strong th:text="${h.existente()}">2 (Razoável)</strong>.
+                            Escolher outro nível pede confirmação.
+                        </p>
+                        <div class="opcoes opcoes-4">
+                            <button type="button" class="btn btn-opcao btn-nivel" th:each="n : ${h.niveis()}"
+                                    th:hx-post="@{${base} + '/hidratacao/' + ${h.escolhido().name()} + '/' + ${n.valor}}">
+                                <span class="nivel-num" th:text="${n.valor}">3</span>
+                                <span th:text="${n.etiqueta}">Bem</span>
                             </button>
                         </div>
                     </th:block>

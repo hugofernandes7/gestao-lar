@@ -67,7 +67,7 @@ tr.anulado td:not(:nth-last-child(-n+2)) { text-decoration: line-through; }
 
 .formulario { display: flex; flex-direction: column; gap: 1rem; background: #fff; border-radius: var(--raio); box-shadow: var(--sombra); padding: 1.3rem; }
 .formulario label, .filtros label { display: flex; flex-direction: column; gap: .25rem; font-weight: 700; font-size: .98rem; }
-.formulario input[type=text], .formulario input[type=password], .formulario input[type=date], .formulario select, .formulario textarea,
+.formulario input[type=text], .formulario input[type=password], .formulario input[type=date], .formulario input[type=tel], .formulario select, .formulario textarea,
 .filtros select, .filtros input {
     font: inherit; padding: .55rem .7rem; border: 2px solid #b7aea0; border-radius: 12px; background: #fffdf9; font-weight: 400; color: var(--texto);
 }

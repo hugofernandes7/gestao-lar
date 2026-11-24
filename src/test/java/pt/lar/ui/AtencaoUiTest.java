@@ -53,7 +53,7 @@ class AtencaoUiTest extends BaseVisualTest {
         assertThat(pagina.locator(".col-esq .aviso")).isVisible();
         assertThat(pagina.locator(".col-esq .atencao")).isVisible();
         assertThat(pagina.locator(".col-dir .abas")).isVisible();
-        assertThat(pagina.locator(".col-dir .btn-acao")).hasCount(5);
+        assertThat(pagina.locator(".col-dir .btn-acao")).hasCount(6);
         assertThat(pagina.locator(".col-dir .hoje")).isAttached();
         assertThat(pagina.locator(".col-esq .btn-acao")).hasCount(0);
         assertThat(colunaEsquerdaRola()).as("com ocorrência recente, a Atenção do quarto 4 cabe sem rolar").isFalse();
@@ -190,7 +190,7 @@ class AtencaoUiTest extends BaseVisualTest {
         abrirFicha(novo);
         assertThat(pagina.locator(".atencao")).containsText("ainda por preencher");
         assertThat(pagina.locator(".atencao-grelha")).hasCount(0);
-        assertThat(pagina.locator(".btn-acao")).hasCount(5);   // os registos funcionam na mesma
+        assertThat(pagina.locator(".btn-acao")).hasCount(6);   // os registos funcionam na mesma
     }
 
     @Test
@@ -203,7 +203,7 @@ class AtencaoUiTest extends BaseVisualTest {
     void sobreMimEDeSoLeituraEOSeparadorRegistosVoltaAMostrarOsBotoes() {
         abrirFicha(quarto4);
         assertThat(pagina.locator(".aba.ativa")).hasText("Registos");
-        assertThat(pagina.locator(".btn-acao")).hasCount(5);
+        assertThat(pagina.locator(".btn-acao")).hasCount(6);
 
         tocar(pagina.locator(".aba", new Page.LocatorOptions().setHasText("Sobre mim")));
 
@@ -217,7 +217,7 @@ class AtencaoUiTest extends BaseVisualTest {
         assertThat(pagina.locator(".atencao")).isVisible();                                          // Atenção mantém-se
 
         tocar(pagina.locator(".aba", new Page.LocatorOptions().setHasText("Registos")));
-        assertThat(pagina.locator(".btn-acao")).hasCount(5);
+        assertThat(pagina.locator(".btn-acao")).hasCount(6);
     }
 
     @Test
